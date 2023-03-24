@@ -1,0 +1,17 @@
+syntax = "proto3";
+package random;
+
+option go_package = "github.com/minhthong582000/SOA-404/api/v1/pb/random/random.proto;pb";
+
+// RandomService is an interface exported by the server.
+service RandomService {
+  rpc GetRandNumber(GetRandNumberRequest) returns (GetRandNumberReply) {}
+}
+
+message GetRandNumberRequest {
+  int64 SeedNum = 1;
+}
+
+message GetRandNumberReply {
+  int64 Number = 1;
+}
