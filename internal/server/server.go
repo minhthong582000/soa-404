@@ -58,6 +58,7 @@ func (s *Server) Run() error {
 		}
 	}()
 
+	fmt.Println("gRPC server is running on", s.bindAddr)
 	if err := s.grpcServer.Serve(lis); err != nil {
 		return fmt.Errorf("failed to serve: %v", err)
 	}

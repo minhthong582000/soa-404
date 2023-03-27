@@ -2,6 +2,9 @@
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
+PB_DIR="../api/v1/pb"
+cd $PB_DIR
+
 # Loop through all directories and generate the protobuf files
 for dir in $(ls -d */); do
     echo "Generating protobuf files for $dir"

@@ -8,15 +8,17 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/minhthong582000/soa-404/internal/app/random"
 	"github.com/minhthong582000/soa-404/internal/server"
+	"github.com/minhthong582000/soa-404/pkg/log"
 )
+
+var Version = "1.0.0"
 
 func main() {
 	ctx := context.Background()
-
 	_ = godotenv.Load("sample_file.env")
-	fmt.Println(os.Getenv("BIND_ADDR"))
+	logger := log.New().With(ctx, "version", Version)
 
-	randomServer := random.NewServer(random.NewService(random.NewRepository()))
+	randomServer := random.NewServer(logger, random.NewService(random.NewRepository()))
 	server := server.New(ctx, os.Getenv("BIND_ADDR"), randomServer)
 
 	err := server.Run()
