@@ -23,11 +23,8 @@ func NewServer(logger log.ILogger, randomService entity.IRandomService) *RandomS
 }
 
 func (s RandomServer) GetRandNumber(ctx context.Context, request *pb.GetRandNumberRequest) (*pb.GetRandNumberReply, error) {
-	s.logger.With(ctx).Info("GetRandNumber")
-
 	randNum, err := s.RandomService.Get(ctx, request.SeedNum)
 	if err != nil {
-		s.logger.Errorf("invalid request: %v", err)
 		return nil, err
 	}
 

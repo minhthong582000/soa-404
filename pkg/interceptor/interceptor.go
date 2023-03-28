@@ -29,7 +29,11 @@ func (im *InterceptorManager) Logger(ctx context.Context, req interface{}, info 
 	start := time.Now()
 	md, _ := metadata.FromIncomingContext(ctx)
 	reply, err := handler(ctx, req)
-	im.logger.With(ctx).Infof("Method: %s, Time: %v, Metadata: %v, Err: %v", info.FullMethod, time.Since(start), md, err)
+	if err != nil {
+		im.logger.With(ctx).Errorf("Method: %s, Time: %v, Metadata: %v, Err: %v", info.FullMethod, time.Since(start), md, err)
+	} else {
+		im.logger.With(ctx).Infof("Method: %s, Time: %v, Metadata: %v", info.FullMethod, time.Since(start), md)
+	}
 
 	return reply, err
 }

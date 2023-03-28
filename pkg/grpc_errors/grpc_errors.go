@@ -35,7 +35,7 @@ func ParseGRPCErrStatusCode(err error) codes.Code {
 		return codes.Unauthenticated
 	case errors.Is(err, ErrInvalidSessionId):
 		return codes.PermissionDenied
-	case strings.Contains(err.Error(), "Validate"):
+	case strings.Contains(err.Error(), "validate"):
 		return codes.InvalidArgument
 	case strings.Contains(err.Error(), "redis"):
 		return codes.NotFound
