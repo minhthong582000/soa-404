@@ -46,13 +46,13 @@ func (s *Server) Run() error {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
 
-	metrics, err := metric.CreateMetrics("localhost:8070", "random")
+	metrics, err := metric.CreateMetrics(os.Getenv("METRICS_BIND_ADDR"), "random")
 	if err != nil {
 		s.logger.Errorf("CreateMetrics Error: %s", err)
 	}
 	s.logger.Infof(
 		"Metrics available URL: %s, ServiceName: %s",
-		"localhost:8070",
+		os.Getenv("METRICS_BIND_ADDR"),
 		"random",
 	)
 
