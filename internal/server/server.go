@@ -3,34 +3,39 @@ package server
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"os/signal"
 
+	"google.golang.org/grpc"
+
+	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+	interceptors "github.com/minhthong582000/soa-404/pkg/interceptor"
+	"github.com/minhthong582000/soa-404/pkg/log"
+	metric "github.com/minhthong582000/soa-404/pkg/metrics"
+
 	pb "github.com/minhthong582000/soa-404/api/v1/pb/random"
 	"github.com/minhthong582000/soa-404/internal/app/random"
-	"google.golang.org/grpc"
 )
 
 // Server to serve the service.
 type Server struct {
-	grpcServer *grpc.Server
-	bindAddr   string
-	ctx        context.Context
+	bindAddr string
+	ctx      context.Context
+	logger   log.ILogger
 
 	randomServer *random.RandomServer
 }
 
 // New returns a new server.
-func New(ctx context.Context, bindAddr string, randomServer *random.RandomServer) *Server {
-	grpcServer := grpc.NewServer()
-
+func New(logger log.ILogger, ctx context.Context, bindAddr string, randomServer *random.RandomServer) *Server {
 	return &Server{
-		grpcServer:   grpcServer,
 		bindAddr:     bindAddr,
 		ctx:          ctx,
 		randomServer: randomServer,
+		logger:       logger,
 	}
 }
 
@@ -41,8 +46,30 @@ func (s *Server) Run() error {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
 
+	metrics, err := metric.CreateMetrics("localhost:8070", "random")
+	if err != nil {
+		s.logger.Errorf("CreateMetrics Error: %s", err)
+	}
+	s.logger.Infof(
+		"Metrics available URL: %s, ServiceName: %s",
+		"localhost:8070",
+		"random",
+	)
+
+	// Register logs & metrics interceptor
+	in := interceptors.NewInterceptorManager(s.logger, metrics)
+
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(in.Logger),
+		grpc.ChainUnaryInterceptor(
+			grpc_ctxtags.UnaryServerInterceptor(),
+			grpc_prometheus.UnaryServerInterceptor,
+			recovery.UnaryServerInterceptor(),
+		),
+	)
+
 	// Random service
-	pb.RegisterRandomServiceServer(s.grpcServer, s.randomServer)
+	pb.RegisterRandomServiceServer(grpcServer, s.randomServer)
 
 	// graceful shutdown
 	c := make(chan os.Signal, 1)
@@ -50,16 +77,16 @@ func (s *Server) Run() error {
 	go func() {
 		for range c {
 			// sig is a ^C, handle it
-			log.Println("shutting down gRPC server...")
+			s.logger.Info("shutting down gRPC server...")
 
-			s.grpcServer.GracefulStop()
+			grpcServer.GracefulStop()
 
 			<-s.ctx.Done()
 		}
 	}()
 
 	fmt.Println("gRPC server is running on", s.bindAddr)
-	if err := s.grpcServer.Serve(lis); err != nil {
+	if err := grpcServer.Serve(lis); err != nil {
 		return fmt.Errorf("failed to serve: %v", err)
 	}
 
