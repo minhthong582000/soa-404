@@ -22,20 +22,22 @@ import (
 
 // Server to serve the service.
 type Server struct {
-	bindAddr string
-	ctx      context.Context
-	logger   log.ILogger
+	bindAddr        string
+	metricsBindAddr string
+	ctx             context.Context
+	logger          log.ILogger
 
 	randomServer *random.RandomServer
 }
 
 // New returns a new server.
-func New(logger log.ILogger, ctx context.Context, bindAddr string, randomServer *random.RandomServer) *Server {
+func New(logger log.ILogger, ctx context.Context, bindAddr string, metricsBindAddr string, randomServer *random.RandomServer) *Server {
 	return &Server{
-		bindAddr:     bindAddr,
-		ctx:          ctx,
-		randomServer: randomServer,
-		logger:       logger,
+		bindAddr:        bindAddr,
+		ctx:             ctx,
+		randomServer:    randomServer,
+		logger:          logger,
+		metricsBindAddr: metricsBindAddr,
 	}
 }
 
@@ -46,13 +48,13 @@ func (s *Server) Run() error {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
 
-	metrics, err := metric.CreateMetrics(os.Getenv("METRICS_BIND_ADDR"), "random")
+	metrics, err := metric.CreateMetrics(s.metricsBindAddr, "random")
 	if err != nil {
 		s.logger.Errorf("CreateMetrics Error: %s", err)
 	}
 	s.logger.Infof(
 		"Metrics available URL: %s, ServiceName: %s",
-		os.Getenv("METRICS_BIND_ADDR"),
+		s.metricsBindAddr,
 		"random",
 	)
 
@@ -79,9 +81,7 @@ func (s *Server) Run() error {
 		for range c {
 			// sig is a ^C, handle it
 			s.logger.Info("shutting down gRPC server...")
-
 			grpcServer.GracefulStop()
-
 			<-s.ctx.Done()
 		}
 	}()

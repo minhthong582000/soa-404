@@ -19,7 +19,7 @@ func main() {
 	logger := log.New().With(ctx, "version", Version)
 
 	randomServer := random.NewServer(logger, random.NewService(random.NewRepository()))
-	server := server.New(logger, ctx, os.Getenv("BIND_ADDR"), randomServer)
+	server := server.New(logger, ctx, os.Getenv("BIND_ADDR"), os.Getenv("METRICS_BIND_ADDR"), randomServer)
 
 	err := server.Run()
 	if err != nil {
