@@ -4,11 +4,14 @@ import (
 	"context"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	pb "github.com/minhthong582000/soa-404/api/v1/pb/random"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 )
 
 // Client is a simple client for the Random service.
@@ -37,9 +40,17 @@ func (c Client) GetRandNumber(ctx context.Context, seed int64) (int64, error) {
 
 // HttpClient runs the client.
 func HttpClient(bindAddr string, serverAddr string) error {
+	kacp := keepalive.ClientParameters{
+		Timeout: 10 * time.Second,
+		Time:    1 * time.Minute,
+	}
+
 	// Configure gRPC client
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	opts = append(opts, grpc.WithKeepaliveParams(kacp))
+	opts = append(opts, grpc.WithUnaryInterceptor(otelgrpc.UnaryClientInterceptor()))
+	opts = append(opts, grpc.WithStreamInterceptor(otelgrpc.StreamClientInterceptor()))
 
 	// Set up a connection to the server
 	conn, err := grpc.Dial(serverAddr, opts...)

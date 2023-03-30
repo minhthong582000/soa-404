@@ -11,7 +11,12 @@ import (
 	"github.com/minhthong582000/soa-404/pkg/log"
 )
 
-var Version = "1.0.0"
+var (
+	Version      = "1.0.0"
+	serviceName  = os.Getenv("SERVICE_NAME")
+	collectorURL = os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	insecure     = os.Getenv("INSECURE_MODE")
+)
 
 func main() {
 	ctx := context.Background()

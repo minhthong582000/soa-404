@@ -15,6 +15,9 @@ import (
 	interceptors "github.com/minhthong582000/soa-404/pkg/interceptor"
 	"github.com/minhthong582000/soa-404/pkg/log"
 	metric "github.com/minhthong582000/soa-404/pkg/metrics"
+	"github.com/minhthong582000/soa-404/pkg/tracing"
+
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 
 	pb "github.com/minhthong582000/soa-404/api/v1/pb/random"
 	"github.com/minhthong582000/soa-404/internal/app/random"
@@ -48,6 +51,7 @@ func (s *Server) Run() error {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
 
+	// Metrics
 	metrics, err := metric.CreateMetrics(s.metricsBindAddr, "random")
 	if err != nil {
 		s.logger.Errorf("CreateMetrics Error: %s", err)
@@ -58,15 +62,31 @@ func (s *Server) Run() error {
 		"random",
 	)
 
+	// Tracing
+	tracer, err := tracing.TracerFactory(tracing.OLTP, tracing.TracerConfig{
+		ServiceName:  "random",
+		CollectorURL: "localhost:8069",
+		Insecure:     true,
+	})
+	if err != nil {
+		s.logger.Errorf("TracerFactory Error: %s", err)
+	}
+	cleanup, err := tracer.InitTracer()
+	if err != nil {
+		s.logger.Errorf("InitTracer Error: %s", err)
+	}
+
 	// Register logs & metrics interceptor
 	in := interceptors.NewInterceptorManager(s.logger, metrics)
 
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(in.Logger),
+		grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
 		grpc.ChainUnaryInterceptor(
 			in.Metrics,
-			grpc_ctxtags.UnaryServerInterceptor(),
 			grpc_prometheus.UnaryServerInterceptor,
+			otelgrpc.UnaryServerInterceptor(),
+			grpc_ctxtags.UnaryServerInterceptor(),
 			recovery.UnaryServerInterceptor(),
 		),
 	)
@@ -82,6 +102,7 @@ func (s *Server) Run() error {
 			// sig is a ^C, handle it
 			s.logger.Info("shutting down gRPC server...")
 			grpcServer.GracefulStop()
+			cleanup(s.ctx)
 			<-s.ctx.Done()
 		}
 	}()
