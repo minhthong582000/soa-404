@@ -1,0 +1,23 @@
+# You can set the value of any configuration to environment variable
+# by using the syntax ${ENV_VAR_NAME}. For example, the following
+# configuration will set the value of the server.bind_addr to the
+# value of the environment variable SERVER_BIND_ADDR:
+#
+# server:
+#   bind_addr: ${SERVER_BIND_ADDR}
+
+server:
+  bind_addr: 127.0.0.1:8069
+  name: "random"
+
+client:
+  bind_addr: 127.0.0.1:8070
+  server_addr: random_service:8069
+
+metrics:
+  bind_addr: 127.0.0.1:8071
+
+tracing:
+  otlp:
+    collector_url: 127.0.0.1:60000
+    insecure: true
