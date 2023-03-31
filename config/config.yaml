@@ -11,5 +11,5 @@ metrics:
 
 tracing:
   otlp:
-    collector_url:
+    collector_url: 127.0.0.1:60000
     insecure: true

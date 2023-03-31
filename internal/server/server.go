@@ -102,7 +102,10 @@ func (s *Server) Run() error {
 			// sig is a ^C, handle it
 			s.logger.Info("shutting down gRPC server...")
 			grpcServer.GracefulStop()
-			cleanup(s.ctx)
+			err := cleanup(s.ctx)
+			if err != nil {
+				s.logger.Errorf("trace cleanup error: %s", err)
+			}
 			<-s.ctx.Done()
 		}
 	}()

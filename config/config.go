@@ -3,43 +3,44 @@ package config
 import (
 	"errors"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
 )
 
 // Server config
 type Server struct {
-	BindAddr string `mapstructure:"bind_addr"`
-	Name     string `mapstructure:"name"`
+	BindAddr string `mapstructure:"bind_addr" validate:"required"`
+	Name     string `mapstructure:"name" validate:"required"`
 }
 
 // Client config
 type Client struct {
-	BindAddr   string `mapstructure:"bind_addr"`
-	ServerAddr string `mapstructure:"server_addr"`
+	BindAddr   string `mapstructure:"bind_addr" validate:"required"`
+	ServerAddr string `mapstructure:"server_addr" validate:"required"`
 }
 
 // Metrics config
 type Metrics struct {
-	BindAddr string `mapstructure:"bind_addr"`
+	BindAddr string `mapstructure:"bind_addr" validate:"required"`
 }
 
 // Tracing config for OTLP
 type OTLPTracing struct {
-	CollectorAddr string `mapstructure:"collector_url"`
-	Insecure      bool   `mapstructure:"insecure"`
+	CollectorAddr string `mapstructure:"collector_url" validate:"required"`
+	Insecure      bool   `mapstructure:"insecure" validate:"required"`
 }
 
 // Tracing config
 type Tracing struct {
-	OLTPTracing OTLPTracing `mapstructure:"otlp"`
+	OLTPTracing OTLPTracing `mapstructure:"otlp" validate:"required"`
 }
 
 // Config struct
 type Config struct {
-	Server  Server  `mapstructure:"server"`
-	Client  Client  `mapstructure:"client"`
-	Metrics Metrics `mapstructure:"metrics"`
-	Tracing Tracing `mapstructure:"tracing"`
+	Server  Server  `mapstructure:"server" validate:"required"`
+	Client  Client  `mapstructure:"client" validate:"required"`
+	Metrics Metrics `mapstructure:"metrics" validate:"required"`
+	Tracing Tracing `mapstructure:"tracing" validate:"required"`
 }
 
 // Load config file from given path
@@ -64,6 +65,10 @@ func LoadConfig(filename string) (*viper.Viper, error) {
 func ParseConfig(v *viper.Viper) (*Config, error) {
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
+		return nil, err
+	}
+	validate := validator.New()
+	if err := validate.Struct(&cfg); err != nil {
 		return nil, err
 	}
 
