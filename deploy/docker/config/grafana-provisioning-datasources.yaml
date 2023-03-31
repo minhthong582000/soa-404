@@ -9,10 +9,10 @@ datasources:
     version: 1
     editable: true
     jsonData:
-      httpHeaderName1: 'X-Scope-OrgID'
-      alertmanagerUid: 'alertmanager'
+      httpHeaderName1: "X-Scope-OrgID"
+      alertmanagerUid: "alertmanager"
     secureJsonData:
-      httpHeaderValue1: 'demo'
+      httpHeaderValue1: "demo"
     isDefault: true
   - name: Mimir Alertmanager
     uid: alertmanager
@@ -23,7 +23,18 @@ datasources:
     version: 1
     editable: true
     jsonData:
-      httpHeaderName1: 'X-Scope-OrgID'
-      implementation: 'cortex'
+      httpHeaderName1: "X-Scope-OrgID"
+      implementation: "cortex"
     secureJsonData:
-      httpHeaderValue1: 'demo'
+      httpHeaderValue1: "demo"
+  - name: Tempo
+    type: tempo
+    access: proxy
+    orgId: 1
+    url: http://tempo:3200/
+    basicAuth: false
+    isDefault: false
+    version: 1
+    editable: false
+    apiVersion: 1
+    uid: tempo

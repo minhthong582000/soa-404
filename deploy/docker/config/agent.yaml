@@ -29,16 +29,31 @@ metrics:
 #       #      job: varlogs
 #       #      __path__: /var/log/*log
 
-# traces:
-#   configs:
-#     - name: default
-#       remote_write:
-#         - endpoint: ${TEMPO_HOST:-localhost:4317}
-#           insecure: true
-#       receivers:
-#         jaeger:
-#           protocols:
-#             thrift_http:
+traces:
+  configs:
+    - name: default
+      remote_write:
+        - endpoint: ${TEMPO_HOST:-localhost:4317}
+          insecure: true
+      receivers:
+        jaeger:
+          protocols:
+            grpc: null
+            thrift_binary: null
+            thrift_compact: null
+            thrift_http: null
+          remote_sampling:
+            strategy_file: /etc/agent/strategies.json
+            tls:
+              insecure: true
+        opencensus: null
+        otlp:
+          protocols:
+            grpc:
+              endpoint: "0.0.0.0:4317"
+            http:
+              endpoint: "0.0.0.0:4318"
+        zipkin: null
 
 #
 # Integrations

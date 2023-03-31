@@ -98,8 +98,6 @@ services:
         - "mimir-1"
         - "mimir-2"
         - "mimir-3"
-      ports:
-        - 9009:9009
       networks:
         - observability
 
@@ -142,6 +140,13 @@ services:
       networks:
         - observability
 
+    tempo:
+      image: grafana/tempo:2.0.1
+      volumes:
+      - ./config/tempo.yaml:/etc/tempo.yaml
+      networks:
+        - observability
+
     # Optional Grafana Agent which can collect telemetry and send it to
     # Loki/Cortex/Tempo.
     #
@@ -161,9 +166,12 @@ services:
       environment:
         HOSTNAME: agent
         REMOTE_WRITE_HOST: load-balancer:9009
+        TEMPO_HOST: tempo:4317
         RANDOM_SERVICE_HOST: random_service:8071
       ports:
-        - "12345:12345"
+        - "12345:12345" # Metrics receiver
+        - "4317:4317" # OpenTelemetry gRPC receiver
+        - "4318:4318" # OpenTelemetry HTTP receiver
       depends_on:
         - "mimir-1"
         - "mimir-2"
