@@ -12,7 +12,7 @@ import (
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
-	"github.com/minhthong582000/soa-404/config"
+	"github.com/minhthong582000/soa-404/pkg/config"
 	interceptors "github.com/minhthong582000/soa-404/pkg/interceptor"
 	"github.com/minhthong582000/soa-404/pkg/log"
 	metric "github.com/minhthong582000/soa-404/pkg/metrics"

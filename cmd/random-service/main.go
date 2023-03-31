@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/minhthong582000/soa-404/config"
 	"github.com/minhthong582000/soa-404/internal/app/random"
 	"github.com/minhthong582000/soa-404/internal/server"
+	"github.com/minhthong582000/soa-404/pkg/config"
 	"github.com/minhthong582000/soa-404/pkg/log"
 )
 
