@@ -142,8 +142,14 @@ services:
 
     tempo:
       image: grafana/tempo:2.0.1
+      command: 
+        - "-config.file=/etc/tempo.yaml"
+        - "-mem-ballast-size-mbs=1024"
+        - "-config.expand-env=true"
       volumes:
       - ./config/tempo.yaml:/etc/tempo.yaml
+      environment:
+        REMOTE_WRITE_HOST: load-balancer:9009
       networks:
         - observability
 
@@ -186,6 +192,7 @@ volumes:
   mimir-2-data:
   mimir-3-data:
   minio-data:
+  tempo_data:
 
 # Network
 networks:
