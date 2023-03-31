@@ -7,15 +7,15 @@
 #   bind_addr: ${SERVER_BIND_ADDR}
 
 server:
-  bind_addr: 127.0.0.1:8069
+  bind_addr: 0.0.0.0:8069
   name: "random"
 
 client:
-  bind_addr: 127.0.0.1:8070
+  bind_addr: 0.0.0.0:8070
   server_addr: random_service:8069
 
 metrics:
-  bind_addr: 127.0.0.1:8071
+  bind_addr: 0.0.0.0:8071
 
 tracing:
   otlp:

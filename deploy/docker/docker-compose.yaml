@@ -22,7 +22,7 @@ services:
         dockerfile: deploy/docker/Dockerfile.client
       restart: on-failure
       environment:
-        - CLIENT_BIND_ADDR=127.0.0.1:8070
+        - CLIENT_BIND_ADDR=0.0.0.0:8070
         - SERVER_BIND_ADDR=random_service:8069
       ports:
           - 8070:8070
@@ -40,9 +40,11 @@ services:
         - MINIO_ROOT_PASSWORD=supersecret
       volumes:
         - minio-data:/data
+      networks:
+        - observability
 
     grafana:
-      image: grafana/grafana:8.5.22
+      image: grafana/grafana:9.4.7
       pull_policy: always
       environment:
         - GF_AUTH_ANONYMOUS_ENABLED=true
@@ -67,6 +69,8 @@ services:
         - ./config/mimir-mixin-compiled/dashboards/mimir-writes.json:/var/lib/grafana/dashboards/mimir-writes.json:ro
       ports:
         - 9000:3000
+      networks:
+        - observability
 
     prometheus:
       image: prom/prometheus:v2.43.0
@@ -83,6 +87,8 @@ services:
         - "mimir-1"
         - "mimir-2"
         - "mimir-3"
+      networks:
+        - observability
 
     load-balancer:
       image: nginx:1.23-alpine3.17
@@ -94,6 +100,8 @@ services:
         - "mimir-3"
       ports:
         - 9009:9009
+      networks:
+        - observability
 
     mimir-1:
       image: grafana/mimir:2.7.1
@@ -105,6 +113,8 @@ services:
         - ./config/mimir.yaml:/etc/mimir.yaml
         - ./config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
         - mimir-1-data:/data
+      networks:
+        - observability
 
     mimir-2:
       image: grafana/mimir:2.7.1
@@ -116,6 +126,8 @@ services:
         - ./config/mimir.yaml:/etc/mimir.yaml
         - ./config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
         - mimir-2-data:/data
+      networks:
+        - observability
 
     mimir-3:
       image: grafana/mimir:2.7.1
@@ -127,6 +139,39 @@ services:
         - ./config/mimir.yaml:/etc/mimir.yaml
         - ./config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
         - mimir-3-data:/data
+      networks:
+        - observability
+
+    # Optional Grafana Agent which can collect telemetry and send it to
+    # Loki/Cortex/Tempo.
+    #
+    # Enable with the "agent" profile.
+    agent:
+      image: grafana/agent:latest
+      volumes:
+        - ./config/agent.yaml:/etc/agent-config/agent.yaml
+      entrypoint:
+        - /bin/agent
+        - -server.http.address=0.0.0.0:12345
+        - -config.file=/etc/agent-config/agent.yaml
+        - -metrics.wal-directory=/tmp/agent/wal
+        - -enable-features=integrations-next
+        - -config.expand-env
+        - -config.enable-read-api
+      environment:
+        HOSTNAME: agent
+        REMOTE_WRITE_HOST: load-balancer:9009
+        RANDOM_SERVICE_HOST: random_service:8071
+      ports:
+        - "12345:12345"
+      depends_on:
+        - "mimir-1"
+        - "mimir-2"
+        - "mimir-3"
+        - "random_service"
+      networks:
+        - service
+        - observability
 
 volumes:
   mimir-1-data:
@@ -137,4 +182,6 @@ volumes:
 # Network
 networks:
   service:
-      name: service
+    name: service
+  observability:
+    name: observability
