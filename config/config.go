@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"os"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
@@ -49,13 +50,21 @@ func LoadConfig(filename string) (*viper.Viper, error) {
 
 	v.SetConfigName(filename)
 	v.SetConfigType("yaml")
-	v.AddConfigPath("config")
+	v.AddConfigPath(".")  // optionally look for config in the working directory
+	v.SetEnvPrefix("soa") // set env prefix with "SOA_", e.g. SOA_SERVER_BIND_ADDR
 	v.AutomaticEnv()
 	if err := v.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			return nil, errors.New("config file not found")
 		}
 		return nil, err
+	}
+
+	// If yaml value is ${ENV}, replace the value with ENV value
+	// e.g. key: ${VALUE} -> key: ABC, if `VALUE` is set to `ABC`
+	for _, k := range v.AllKeys() {
+		val := v.GetString(k)
+		v.Set(k, os.ExpandEnv(val))
 	}
 
 	return v, nil
@@ -67,6 +76,8 @@ func ParseConfig(v *viper.Viper) (*Config, error) {
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, err
 	}
+
+	// Validate config
 	validate := validator.New()
 	if err := validate.Struct(&cfg); err != nil {
 		return nil, err

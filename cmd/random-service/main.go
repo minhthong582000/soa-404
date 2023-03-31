@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/joho/godotenv"
 	"github.com/minhthong582000/soa-404/config"
 	"github.com/minhthong582000/soa-404/internal/app/random"
 	"github.com/minhthong582000/soa-404/internal/server"
@@ -13,10 +12,9 @@ import (
 
 func main() {
 	ctx := context.Background()
-	_ = godotenv.Load("sample_file.env")
 	logger := log.New().With(ctx)
 
-	v, err := config.LoadConfig("config.yaml")
+	v, err := config.LoadConfig("config/config.yaml")
 	if err != nil {
 		fmt.Println(err)
 		return
