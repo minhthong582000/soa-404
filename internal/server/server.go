@@ -12,6 +12,7 @@ import (
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+	"github.com/minhthong582000/soa-404/config"
 	interceptors "github.com/minhthong582000/soa-404/pkg/interceptor"
 	"github.com/minhthong582000/soa-404/pkg/log"
 	metric "github.com/minhthong582000/soa-404/pkg/metrics"
@@ -25,48 +26,47 @@ import (
 
 // Server to serve the service.
 type Server struct {
-	bindAddr        string
-	metricsBindAddr string
-	ctx             context.Context
-	logger          log.ILogger
+	config *config.Config
+
+	ctx    context.Context
+	logger log.ILogger
 
 	randomServer *random.RandomServer
 }
 
 // New returns a new server.
-func New(logger log.ILogger, ctx context.Context, bindAddr string, metricsBindAddr string, randomServer *random.RandomServer) *Server {
+func New(logger log.ILogger, ctx context.Context, config *config.Config, randomServer *random.RandomServer) *Server {
 	return &Server{
-		bindAddr:        bindAddr,
-		ctx:             ctx,
-		randomServer:    randomServer,
-		logger:          logger,
-		metricsBindAddr: metricsBindAddr,
+		config:       config,
+		ctx:          ctx,
+		randomServer: randomServer,
+		logger:       logger,
 	}
 }
 
 // Run runs server.
 func (s *Server) Run() error {
-	lis, err := net.Listen("tcp", s.bindAddr)
+	lis, err := net.Listen("tcp", s.config.Server.BindAddr)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
 
 	// Metrics
-	metrics, err := metric.CreateMetrics(s.metricsBindAddr, "random")
+	metrics, err := metric.CreateMetrics(s.config.Metrics.BindAddr, s.config.Server.Name)
 	if err != nil {
 		s.logger.Errorf("CreateMetrics Error: %s", err)
 	}
 	s.logger.Infof(
 		"Metrics available URL: %s, ServiceName: %s",
-		s.metricsBindAddr,
-		"random",
+		s.config.Metrics.BindAddr,
+		s.config.Server.Name,
 	)
 
 	// Tracing
 	tracer, err := tracing.TracerFactory(tracing.OLTP, tracing.TracerConfig{
-		ServiceName:  "random",
-		CollectorURL: "localhost:8069",
-		Insecure:     true,
+		ServiceName:  s.config.Server.Name,
+		CollectorURL: s.config.Tracing.OLTPTracing.CollectorAddr,
+		Insecure:     s.config.Tracing.OLTPTracing.Insecure,
 	})
 	if err != nil {
 		s.logger.Errorf("TracerFactory Error: %s", err)
@@ -107,7 +107,7 @@ func (s *Server) Run() error {
 		}
 	}()
 
-	fmt.Println("gRPC server is running on", s.bindAddr)
+	fmt.Println("gRPC server is running on", s.config.Server.BindAddr)
 	if err := grpcServer.Serve(lis); err != nil {
 		return fmt.Errorf("failed to serve: %v", err)
 	}
