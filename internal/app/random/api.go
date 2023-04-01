@@ -26,7 +26,7 @@ func NewServer(logger log.ILogger, tracer trace.Tracer, randomService entity.IRa
 }
 
 func (s RandomServer) GetRandNumber(ctx context.Context, request *pb.GetRandNumberRequest) (*pb.GetRandNumberReply, error) {
-	ctx, span := s.tracer.Start(ctx, "RandomService.Usecase.GetRandNumber")
+	ctx, span := s.tracer.Start(ctx, "RandomService.Handler.GetRandNumber")
 	defer span.End()
 
 	randNum, err := s.RandomService.Get(ctx, request.SeedNum)
