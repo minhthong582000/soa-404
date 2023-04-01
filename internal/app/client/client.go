@@ -8,6 +8,8 @@ import (
 
 	"github.com/labstack/echo/v4"
 	pb "github.com/minhthong582000/soa-404/api/v1/pb/random"
+	"github.com/minhthong582000/soa-404/pkg/config"
+	"github.com/minhthong582000/soa-404/pkg/tracing"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -39,12 +41,26 @@ func (c Client) GetRandNumber(ctx context.Context, seed int64) (int64, error) {
 }
 
 // HttpClient runs the client.
-func HttpClient(bindAddr string, serverAddr string) error {
+func HttpClient(config *config.Config) error {
+	// Tracing
+	tracer, err := tracing.TracerFactory(tracing.OLTP, tracing.TracerConfig{
+		ServiceName:  config.Client.Name,
+		CollectorURL: config.Tracing.OLTPTracing.CollectorAddr,
+		Insecure:     config.Tracing.OLTPTracing.Insecure,
+	})
+	if err != nil {
+		log.Fatalf("TracerFactory Error: %s", err)
+	}
+	cleanup, err := tracer.InitTracer()
+	if err != nil {
+		log.Fatalf("InitTracer Error: %s", err)
+	}
+	defer cleanup(context.Background())
+
 	kacp := keepalive.ClientParameters{
 		Timeout: 10 * time.Second,
 		Time:    1 * time.Minute,
 	}
-
 	// Configure gRPC client
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -53,7 +69,7 @@ func HttpClient(bindAddr string, serverAddr string) error {
 	opts = append(opts, grpc.WithStreamInterceptor(otelgrpc.StreamClientInterceptor()))
 
 	// Set up a connection to the server
-	conn, err := grpc.Dial(serverAddr, opts...)
+	conn, err := grpc.Dial(config.Client.ServerAddr, opts...)
 	if err != nil {
 		log.Fatalf("fail to dial: %v", err)
 	}
@@ -91,7 +107,7 @@ func HttpClient(bindAddr string, serverAddr string) error {
 			"number": randNum,
 		})
 	})
-	if err := router.Start(bindAddr); err != nil {
+	if err := router.Start(config.Client.BindAddr); err != nil {
 		log.Fatal(err)
 	}
 

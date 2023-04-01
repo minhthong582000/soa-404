@@ -18,6 +18,7 @@ type Server struct {
 type Client struct {
 	BindAddr   string `mapstructure:"bind_addr" validate:"required"`
 	ServerAddr string `mapstructure:"server_addr" validate:"required"`
+	Name       string `mapstructure:"name" validate:"required"`
 }
 
 // Metrics config

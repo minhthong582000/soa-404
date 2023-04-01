@@ -81,7 +81,7 @@ func (s *Server) Run() error {
 
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(in.Logger),
-		grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
+		// grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
 		grpc.ChainUnaryInterceptor(
 			in.Metrics,
 			grpc_prometheus.UnaryServerInterceptor,

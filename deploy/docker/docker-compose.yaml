@@ -1,191 +1,186 @@
 version: "3.9"
 
 services:
-    random_service:
-      container_name: random_service
-      build:
-        context: ../../
-        dockerfile: deploy/docker/Dockerfile
-      restart: on-failure
-      volumes:
-          - ../../config/config-docker.yaml:/usr/app/config/config.yaml
-      ports:
-          - 8069:8069
-          - 8071:8071 # metrics
-      networks:
-          - service
-
-    client:
-      container_name: client
-      build:
-        context: ../../
-        dockerfile: deploy/docker/Dockerfile.client
-      restart: on-failure
-      environment:
-        - CLIENT_BIND_ADDR=0.0.0.0:8070
-        - SERVER_BIND_ADDR=random_service:8069
-      ports:
-          - 8070:8070
-      networks:
-          - service
-      depends_on:
-          - random_service
-
-    minio:
-      image: minio/minio:RELEASE.2023-03-24T21-41-23Z
-      entrypoint: [""]
-      command: ["sh", "-c", "mkdir -p /data/mimir && minio server --quiet /data"]
-      environment:
-        - MINIO_ROOT_USER=mimir
-        - MINIO_ROOT_PASSWORD=supersecret
-      volumes:
-        - minio-data:/data
-      networks:
-        - observability
-
-    grafana:
-      image: grafana/grafana:9.4.7
-      pull_policy: always
-      environment:
-        - GF_AUTH_ANONYMOUS_ENABLED=true
-        - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-        - GF_USERS_DEFAULT_THEME=light
-        - GF_LOG_MODE=console
-        - GF_LOG_LEVEL=critical
-      volumes:
-        - ./config/grafana-provisioning-dashboards.yaml:/etc/grafana/provisioning/dashboards/provisioning-dashboards.yaml:ro
-        - ./config/grafana-provisioning-datasources.yaml:/etc/grafana/provisioning/datasources/provisioning-datasources.yaml:ro
-        # Explicitly list the dashboards we want to show in the demo. We intentionally exclude dashboards that require
-        # Kubernetes metrics (eg. resources or networking) and other services not available in the demo (eg. Grafana Loki).
-        - ./config/mimir-mixin-compiled/dashboards/mimir-alertmanager.json:/var/lib/grafana/dashboards/mimir-alertmanager.json:ro
-        - ./config/mimir-mixin-compiled/dashboards/mimir-compactor.json:/var/lib/grafana/dashboards/mimir-compactor.json:ro
-        - ./config/mimir-mixin-compiled/dashboards/mimir-object-store.json:/var/lib/grafana/dashboards/mimir-object-store.json:ro
-        - ./config/mimir-mixin-compiled/dashboards/mimir-overrides.json:/var/lib/grafana/dashboards/mimir-overrides.json:ro
-        - ./config/mimir-mixin-compiled/dashboards/mimir-queries.json:/var/lib/grafana/dashboards/mimir-queries.json:ro
-        - ./config/mimir-mixin-compiled/dashboards/mimir-reads.json:/var/lib/grafana/dashboards/mimir-reads.json:ro
-        - ./config/mimir-mixin-compiled/dashboards/mimir-ruler.json:/var/lib/grafana/dashboards/mimir-ruler.json:ro
-        - ./config/mimir-mixin-compiled/dashboards/mimir-tenants.json:/var/lib/grafana/dashboards/mimir-tenants.json:ro
-        - ./config/mimir-mixin-compiled/dashboards/mimir-top-tenants.json:/var/lib/grafana/dashboards/mimir-top-tenants.json:ro
-        - ./config/mimir-mixin-compiled/dashboards/mimir-writes.json:/var/lib/grafana/dashboards/mimir-writes.json:ro
-      ports:
-        - 9000:3000
-      networks:
-        - observability
-
-    prometheus:
-      image: prom/prometheus:v2.43.0
-      command:
-        - --config.file=/etc/prometheus/prometheus.yml
-        - --log.level=error
-        - --storage.tsdb.path=/prometheus
-        - --web.console.libraries=/usr/share/prometheus/console_libraries
-        - --web.console.templates=/usr/share/prometheus/consoles
-      volumes:
-        - ./config/prometheus.yaml:/etc/prometheus/prometheus.yml
-        - ./config/mimir-mixin-compiled/rules.yaml:/etc/prometheus/rules.yaml
-      depends_on:
-        - "mimir-1"
-        - "mimir-2"
-        - "mimir-3"
-      networks:
-        - observability
-
-    load-balancer:
-      image: nginx:1.23-alpine3.17
-      volumes:
-        - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
-      depends_on:
-        - "mimir-1"
-        - "mimir-2"
-        - "mimir-3"
-      networks:
-        - observability
-
-    mimir-1:
-      image: grafana/mimir:2.7.1
-      command: ["-config.file=/etc/mimir.yaml"]
-      hostname: mimir-1
-      depends_on:
-        - minio
-      volumes:
-        - ./config/mimir.yaml:/etc/mimir.yaml
-        - ./config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
-        - mimir-1-data:/data
-      networks:
-        - observability
-
-    mimir-2:
-      image: grafana/mimir:2.7.1
-      command: ["-config.file=/etc/mimir.yaml"]
-      hostname: mimir-2
-      depends_on:
-        - minio
-      volumes:
-        - ./config/mimir.yaml:/etc/mimir.yaml
-        - ./config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
-        - mimir-2-data:/data
-      networks:
-        - observability
-
-    mimir-3:
-      image: grafana/mimir:2.7.1
-      command: ["-config.file=/etc/mimir.yaml"]
-      hostname: mimir-3
-      depends_on:
-        - minio
-      volumes:
-        - ./config/mimir.yaml:/etc/mimir.yaml
-        - ./config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
-        - mimir-3-data:/data
-      networks:
-        - observability
-
-    tempo:
-      image: grafana/tempo:2.0.1
-      command: 
-        - "-config.file=/etc/tempo.yaml"
-        - "-mem-ballast-size-mbs=1024"
-        - "-config.expand-env=true"
-      volumes:
-      - ./config/tempo.yaml:/etc/tempo.yaml
-      environment:
-        REMOTE_WRITE_HOST: load-balancer:9009
-      networks:
-        - observability
-
-    # Optional Grafana Agent which can collect telemetry and send it to
-    # Loki/Cortex/Tempo.
-    #
-    # Enable with the "agent" profile.
-    agent:
-      image: grafana/agent:latest
-      volumes:
-        - ./config/agent.yaml:/etc/agent-config/agent.yaml
-      entrypoint:
-        - /bin/agent
-        - -server.http.address=0.0.0.0:12345
-        - -config.file=/etc/agent-config/agent.yaml
-        - -metrics.wal-directory=/tmp/agent/wal
-        - -enable-features=integrations-next
-        - -config.expand-env
-        - -config.enable-read-api
-      environment:
-        HOSTNAME: agent
-        REMOTE_WRITE_HOST: load-balancer:9009
-        TEMPO_HOST: tempo:4317
-        RANDOM_SERVICE_HOST: random_service:8071
-      ports:
-        - "12345:12345" # Metrics receiver
-        - "4317:4317" # OpenTelemetry gRPC receiver
-        - "4318:4318" # OpenTelemetry HTTP receiver
-      depends_on:
-        - "mimir-1"
-        - "mimir-2"
-        - "mimir-3"
-        - "random_service"
-      networks:
+  random_service:
+    container_name: random_service
+    build:
+      context: ../../
+      dockerfile: deploy/docker/Dockerfile
+    restart: on-failure
+    volumes:
+      - ../../config/config-docker.yaml:/usr/app/config/config.yaml
+    ports:
+      - 8069:8069
+      - 8071:8071 # metrics
+    networks:
         - service
-        - observability
+
+  client:
+    container_name: client
+    build:
+      context: ../../
+      dockerfile: deploy/docker/Dockerfile.client
+    restart: on-failure
+    volumes:
+      - ../../config/config-docker.yaml:/usr/app/config/config.yaml
+    ports:
+      - 8070:8070
+    networks:
+      - service
+    depends_on:
+      - random_service
+
+  minio:
+    image: minio/minio:RELEASE.2023-03-24T21-41-23Z
+    entrypoint: [""]
+    command: ["sh", "-c", "mkdir -p /data/mimir && minio server --quiet /data"]
+    environment:
+      - MINIO_ROOT_USER=mimir
+      - MINIO_ROOT_PASSWORD=supersecret
+    volumes:
+      - minio-data:/data
+    networks:
+      - observability
+
+  grafana:
+    image: grafana/grafana:9.4.7
+    pull_policy: always
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_USERS_DEFAULT_THEME=light
+      - GF_LOG_MODE=console
+      - GF_LOG_LEVEL=critical
+    volumes:
+      - ./config/grafana-provisioning-dashboards.yaml:/etc/grafana/provisioning/dashboards/provisioning-dashboards.yaml:ro
+      - ./config/grafana-provisioning-datasources.yaml:/etc/grafana/provisioning/datasources/provisioning-datasources.yaml:ro
+      # Explicitly list the dashboards we want to show in the demo. We intentionally exclude dashboards that require
+      # Kubernetes metrics (eg. resources or networking) and other services not available in the demo (eg. Grafana Loki).
+      - ./config/mimir-mixin-compiled/dashboards/mimir-alertmanager.json:/var/lib/grafana/dashboards/mimir-alertmanager.json:ro
+      - ./config/mimir-mixin-compiled/dashboards/mimir-compactor.json:/var/lib/grafana/dashboards/mimir-compactor.json:ro
+      - ./config/mimir-mixin-compiled/dashboards/mimir-object-store.json:/var/lib/grafana/dashboards/mimir-object-store.json:ro
+      - ./config/mimir-mixin-compiled/dashboards/mimir-overrides.json:/var/lib/grafana/dashboards/mimir-overrides.json:ro
+      - ./config/mimir-mixin-compiled/dashboards/mimir-queries.json:/var/lib/grafana/dashboards/mimir-queries.json:ro
+      - ./config/mimir-mixin-compiled/dashboards/mimir-reads.json:/var/lib/grafana/dashboards/mimir-reads.json:ro
+      - ./config/mimir-mixin-compiled/dashboards/mimir-ruler.json:/var/lib/grafana/dashboards/mimir-ruler.json:ro
+      - ./config/mimir-mixin-compiled/dashboards/mimir-tenants.json:/var/lib/grafana/dashboards/mimir-tenants.json:ro
+      - ./config/mimir-mixin-compiled/dashboards/mimir-top-tenants.json:/var/lib/grafana/dashboards/mimir-top-tenants.json:ro
+      - ./config/mimir-mixin-compiled/dashboards/mimir-writes.json:/var/lib/grafana/dashboards/mimir-writes.json:ro
+    ports:
+      - 9000:3000
+    networks:
+      - observability
+
+  prometheus:
+    image: prom/prometheus:v2.43.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --log.level=error
+      - --storage.tsdb.path=/prometheus
+      - --web.console.libraries=/usr/share/prometheus/console_libraries
+      - --web.console.templates=/usr/share/prometheus/consoles
+    volumes:
+      - ./config/prometheus.yaml:/etc/prometheus/prometheus.yml
+      - ./config/mimir-mixin-compiled/rules.yaml:/etc/prometheus/rules.yaml
+    depends_on:
+      - "mimir-1"
+      - "mimir-2"
+      - "mimir-3"
+    networks:
+      - observability
+
+  load-balancer:
+    image: nginx:1.23-alpine3.17
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - "mimir-1"
+      - "mimir-2"
+      - "mimir-3"
+    networks:
+      - observability
+
+  mimir-1:
+    image: grafana/mimir:2.7.1
+    command: ["-config.file=/etc/mimir.yaml"]
+    hostname: mimir-1
+    depends_on:
+      - minio
+    volumes:
+      - ./config/mimir.yaml:/etc/mimir.yaml
+      - ./config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
+      - mimir-1-data:/data
+    networks:
+      - observability
+
+  mimir-2:
+    image: grafana/mimir:2.7.1
+    command: ["-config.file=/etc/mimir.yaml"]
+    hostname: mimir-2
+    depends_on:
+      - minio
+    volumes:
+      - ./config/mimir.yaml:/etc/mimir.yaml
+      - ./config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
+      - mimir-2-data:/data
+    networks:
+      - observability
+
+  mimir-3:
+    image: grafana/mimir:2.7.1
+    command: ["-config.file=/etc/mimir.yaml"]
+    hostname: mimir-3
+    depends_on:
+      - minio
+    volumes:
+      - ./config/mimir.yaml:/etc/mimir.yaml
+      - ./config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
+      - mimir-3-data:/data
+    networks:
+      - observability
+
+  tempo:
+    image: grafana/tempo:2.0.1
+    command: 
+      - "-config.file=/etc/tempo.yaml"
+      - "-mem-ballast-size-mbs=1024"
+      - "-config.expand-env=true"
+    volumes:
+    - ./config/tempo.yaml:/etc/tempo.yaml
+    environment:
+      REMOTE_WRITE_HOST: load-balancer:9009
+    networks:
+      - observability
+
+  agent:
+    image: grafana/agent:latest
+    volumes:
+      - ./config/agent.yaml:/etc/agent-config/agent.yaml
+    entrypoint:
+      - /bin/agent
+      - -server.http.address=0.0.0.0:12345
+      - -config.file=/etc/agent-config/agent.yaml
+      - -metrics.wal-directory=/tmp/agent/wal
+      - -enable-features=integrations-next
+      - -config.expand-env
+      - -config.enable-read-api
+    environment:
+      HOSTNAME: agent
+      REMOTE_WRITE_HOST: load-balancer:9009
+      TEMPO_HOST: tempo:4317
+      RANDOM_SERVICE_HOST: random_service:8071
+    ports:
+      - "12345:12345" # Metrics receiver
+      - "4317:4317" # OpenTelemetry gRPC receiver
+      - "4318:4318" # OpenTelemetry HTTP receiver
+    depends_on:
+      - "mimir-1"
+      - "mimir-2"
+      - "mimir-3"
+      - "random_service"
+    networks:
+      - service
+      - observability
 
 volumes:
   mimir-1-data:

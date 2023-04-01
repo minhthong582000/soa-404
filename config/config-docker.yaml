@@ -8,11 +8,12 @@
 
 server:
   bind_addr: 0.0.0.0:8069
-  name: "random"
+  name: "random_server"
 
 client:
   bind_addr: 0.0.0.0:8070
   server_addr: random_service:8069
+  name: "random_client"
 
 metrics:
   bind_addr: 0.0.0.0:8071
