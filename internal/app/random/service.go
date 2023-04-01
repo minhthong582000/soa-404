@@ -5,25 +5,32 @@ import (
 	"errors"
 
 	"github.com/minhthong582000/soa-404/internal/entity"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type RandomService struct {
-	Repo entity.IRandomRepository
+	repo entity.IRandomRepository
+
+	tracer trace.Tracer
 }
 
-func NewService(repo entity.IRandomRepository) entity.IRandomService {
+func NewService(tracer trace.Tracer, repo entity.IRandomRepository) entity.IRandomService {
 	return &RandomService{
-		Repo: repo,
+		repo:   repo,
+		tracer: tracer,
 	}
 }
 
 func (s *RandomService) Get(ctx context.Context, seed int64) (*entity.Random, error) {
+	ctx, span := s.tracer.Start(ctx, "RandomService.Usecase.GetRandNumber")
+	defer span.End()
+
 	// Validate seed
 	if seed < 2 {
 		return nil, errors.New("validate: seed must be greater than 2")
 	}
 
-	randNum, err := s.Repo.Get(ctx, seed)
+	randNum, err := s.repo.Get(ctx, seed)
 	if err != nil {
 		return nil, err
 	}

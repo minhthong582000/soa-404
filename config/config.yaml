@@ -13,6 +13,7 @@ server:
 client:
   bind_addr: 127.0.0.1:8070
   server_addr: 127.0.0.1:8069
+  name: "random_client"
 
 metrics:
   bind_addr: 127.0.0.1:8071

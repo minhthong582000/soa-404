@@ -16,7 +16,6 @@ import (
 	interceptors "github.com/minhthong582000/soa-404/pkg/interceptor"
 	"github.com/minhthong582000/soa-404/pkg/log"
 	metric "github.com/minhthong582000/soa-404/pkg/metrics"
-	"github.com/minhthong582000/soa-404/pkg/tracing"
 
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 
@@ -27,7 +26,6 @@ import (
 // Server to serve the service.
 type Server struct {
 	config *config.Config
-
 	ctx    context.Context
 	logger log.ILogger
 
@@ -62,20 +60,6 @@ func (s *Server) Run() error {
 		s.config.Server.Name,
 	)
 
-	// Tracing
-	tracer, err := tracing.TracerFactory(tracing.OLTP, tracing.TracerConfig{
-		ServiceName:  s.config.Server.Name,
-		CollectorURL: s.config.Tracing.OLTPTracing.CollectorAddr,
-		Insecure:     s.config.Tracing.OLTPTracing.Insecure,
-	})
-	if err != nil {
-		s.logger.Errorf("TracerFactory Error: %s", err)
-	}
-	cleanup, err := tracer.InitTracer()
-	if err != nil {
-		s.logger.Errorf("InitTracer Error: %s", err)
-	}
-
 	// Register logs & metrics interceptor
 	in := interceptors.NewInterceptorManager(s.logger, metrics)
 
@@ -102,7 +86,6 @@ func (s *Server) Run() error {
 			// sig is a ^C, handle it
 			s.logger.Info("shutting down gRPC server...")
 			grpcServer.GracefulStop()
-			err := cleanup(s.ctx)
 			if err != nil {
 				s.logger.Errorf("trace cleanup error: %s", err)
 			}
