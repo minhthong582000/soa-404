@@ -8,7 +8,6 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.0-rc.3
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.10.2
 	github.com/prometheus/client_golang v1.14.0
 	github.com/redis/go-redis/v9 v9.0.2
