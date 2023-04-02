@@ -8,7 +8,7 @@
 
 server:
   bind_addr: 127.0.0.1:8069
-  name: "random"
+  name: "random_server"
 
 client:
   bind_addr: 127.0.0.1:8070
@@ -20,5 +20,5 @@ metrics:
 
 tracing:
   otlp:
-    collector_url: 127.0.0.1:60000
+    collector_url: 127.0.0.1:12345
     insecure: true
