@@ -8,6 +8,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
+	"github.com/google/uuid"
+	"github.com/minhthong582000/soa-404/pkg/context_keys"
 	"github.com/minhthong582000/soa-404/pkg/grpc_errors"
 	"github.com/minhthong582000/soa-404/pkg/log"
 	"github.com/minhthong582000/soa-404/pkg/metrics"
@@ -49,4 +51,23 @@ func (im *InterceptorManager) Metrics(ctx context.Context, req interface{}, info
 	im.metr.IncHits(status, info.FullMethod, info.FullMethod)
 
 	return resp, err
+}
+
+// Extract request ID from context
+func (im *InterceptorManager) ExtractRequestID(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	var requestID string
+
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, grpc_errors.ErrNoMetadata
+	}
+	requestIDs := md.Get("x-request-id")
+	if len(requestIDs) > 0 {
+		requestID = requestIDs[0]
+	} else {
+		requestID = uuid.New().String()
+	}
+	ctx = context.WithValue(ctx, context_keys.RequestIDKey, requestID)
+
+	return handler(ctx, req)
 }

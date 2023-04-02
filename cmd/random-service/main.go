@@ -13,7 +13,7 @@ func main() {
 	ctx := context.Background()
 
 	// Logging
-	logger := log.New().With(ctx)
+	logger := log.New()
 
 	// Read config
 	v, err := config.LoadConfig("config/config.yaml")

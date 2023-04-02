@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	pb "github.com/minhthong582000/soa-404/api/v1/pb/random"
 	"github.com/minhthong582000/soa-404/pkg/config"
 	"github.com/minhthong582000/soa-404/pkg/tracing"
@@ -79,6 +80,7 @@ func HttpClient(config *config.Config) error {
 	client := NewClient(randClient)
 
 	router := echo.New()
+	router.Use(middleware.RequestID())
 	router.GET("/healthz", func(c echo.Context) error {
 		return c.String(200, "OK")
 	})

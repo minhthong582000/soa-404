@@ -16,6 +16,7 @@ var (
 	ErrNoCtxMetaData    = errors.New("no ctx metadata")
 	ErrInvalidSessionId = errors.New("invalid session id")
 	ErrEmailExists      = errors.New("email already exists")
+	ErrNoMetadata       = errors.New("no metadata")
 )
 
 // ParseGRPCErrStatusCode parses error and get code
