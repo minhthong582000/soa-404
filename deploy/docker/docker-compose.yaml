@@ -1,5 +1,10 @@
 version: "3.9"
 
+x-logging: &loki-logging
+  driver: json-file
+  options:
+    tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"   
+
 services:
   random_service:
     container_name: random_service
@@ -12,6 +17,8 @@ services:
     ports:
       - 8069:8069
       - 8071:8071 # metrics
+    logging:
+      <<: *loki-logging
     networks:
         - service
 
@@ -27,8 +34,38 @@ services:
       - 8070:8070
     networks:
       - service
+    logging:
+      <<: *loki-logging
     depends_on:
       - random_service
+
+  # Since the Loki containers are running as user 10001 and the mounted data volume is owned by root,
+  # Loki would not have permissions to create the directories.
+  # Therefore the init container changes permissions of the mounted directory.
+  loki_init:
+    image: grafana/loki:2.7.5
+    user: root
+    entrypoint:
+      - "chown"
+      - "10001:10001"
+      - "/data/loki"
+    volumes:
+      - loki_data:/data/loki
+    networks:
+      - observability
+
+  loki:
+    image: grafana/loki:2.7.5
+    command: 
+     - "-config.file=/etc/loki/loki.yaml"
+     - "-config.expand-env=true"
+    volumes:
+      - ./config/loki.yaml:/etc/loki/loki.yaml
+      - loki_data:/data/loki
+    networks:
+      - observability
+    depends_on:
+      - loki_init
 
   minio:
     image: minio/minio:RELEASE.2023-03-24T21-41-23Z
@@ -169,6 +206,7 @@ services:
       REMOTE_WRITE_HOST: load-balancer:9009
       TEMPO_HOST: tempo:4317
       RANDOM_SERVICE_HOST: random_service:8071
+      LOKI_HOST: loki:3100
     ports:
       - "12345:12345" # Metrics receiver
       - "4317:4317" # OpenTelemetry gRPC receiver
@@ -178,6 +216,7 @@ services:
       - "mimir-2"
       - "mimir-3"
       - "random_service"
+      - "client"
     networks:
       - service
       - observability
@@ -188,6 +227,7 @@ volumes:
   mimir-3-data:
   minio-data:
   tempo_data:
+  loki_data:
 
 # Network
 networks:

@@ -18,21 +18,21 @@ metrics:
           static_configs:
             - targets: ["${RANDOM_SERVICE_HOST:-localhost:9001}"]
 
-# logs:
-#   configs:
-#     - name: default
-#       clients:
-#         - url: http://${LOKI_HOST:-localhost:3100}/loki/api/v1/push
-#       positions:
-#         filename: /tmp/positions.yaml
-#       scrape_configs:
-#       ## Uncomment to read logs from /var/log
-#       #- job_name: system
-#       #  static_configs:
-#       #  - targets: [localhost]
-#       #    labels:
-#       #      job: varlogs
-#       #      __path__: /var/log/*log
+logs:
+  configs:
+    - name: default
+      clients:
+        - url: http://${LOKI_HOST:-localhost:3100}/loki/api/v1/push
+      positions:
+        filename: /tmp/positions.yaml
+      scrape_configs:
+      ## Uncomment to read logs from /var/log
+      #- job_name: system
+      #  static_configs:
+      #  - targets: [localhost]
+      #    labels:
+      #      job: varlogs
+      #      __path__: /var/log/*log
 
 traces:
   configs:
