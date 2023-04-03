@@ -2,13 +2,26 @@ package log
 
 import (
 	"context"
+	"fmt"
+	"os"
 
+	"github.com/minhthong582000/soa-404/pkg/config"
 	"github.com/minhthong582000/soa-404/pkg/context_keys"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
 )
+
+var loggerLevelMap = map[string]zapcore.Level{
+	"debug":  zapcore.DebugLevel,
+	"info":   zapcore.InfoLevel,
+	"warn":   zapcore.WarnLevel,
+	"error":  zapcore.ErrorLevel,
+	"dpanic": zapcore.DPanicLevel,
+	"panic":  zapcore.PanicLevel,
+	"fatal":  zapcore.FatalLevel,
+}
 
 // ILogger is a logger that supports log levels, context and structured logging.
 type ILogger interface {
@@ -33,8 +46,59 @@ type logger struct {
 }
 
 // New creates a new logger using the default configuration.
-func New() ILogger {
-	l, _ := zap.NewProduction()
+func New(config config.Logs) ILogger {
+	// Get the log level from the config
+	level, exist := loggerLevelMap[config.Level]
+	if !exist {
+		level = zapcore.DebugLevel
+	}
+
+	outputPaths := []string{"stderr"}
+	if config.Path != "" {
+		// Create the directory if it doesn't exist
+		if _, err := os.Stat(config.Path); os.IsNotExist(err) {
+			err := os.MkdirAll(config.Path, 0755)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to create log directory: %v", err))
+			}
+		}
+
+		// Create the file output
+		file, err := os.Create(fmt.Sprintf("%s/%s.log", config.Path, "app"))
+		if err != nil {
+			panic(fmt.Sprintf("Failed to create log file: %v", err))
+		}
+		outputPaths = append(outputPaths, file.Name())
+	}
+
+	// Define the logging configuration
+	zapConfig := zap.Config{
+		Encoding:         "json",
+		Level:            zap.NewAtomicLevelAt(level),
+		Development:      config.Development,
+		OutputPaths:      outputPaths,
+		ErrorOutputPaths: outputPaths,
+		EncoderConfig: zapcore.EncoderConfig{
+			TimeKey:        "ts",
+			LevelKey:       "level",
+			NameKey:        "logger",
+			CallerKey:      "caller",
+			FunctionKey:    zapcore.OmitKey,
+			MessageKey:     "msg",
+			StacktraceKey:  "stacktrace",
+			LineEnding:     zapcore.DefaultLineEnding,
+			EncodeLevel:    zapcore.LowercaseLevelEncoder,
+			EncodeTime:     zapcore.EpochTimeEncoder,
+			EncodeDuration: zapcore.SecondsDurationEncoder,
+			EncodeCaller:   zapcore.ShortCallerEncoder,
+		},
+	}
+
+	l, err := zapConfig.Build(zap.AddCaller(), zap.AddCallerSkip(1))
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create logger: %v", err))
+	}
+
 	return NewWithZap(l)
 }
 
@@ -65,6 +129,7 @@ func (l *logger) With(ctx context.Context, args ...interface{}) ILogger {
 			args = append(args, zap.String("correlation_id", id))
 		}
 	}
+
 	span := trace.SpanFromContext(ctx)
 	if span != nil {
 		args = append(args, zap.String("trace_id", span.SpanContext().TraceID().String()))
@@ -73,5 +138,6 @@ func (l *logger) With(ctx context.Context, args ...interface{}) ILogger {
 	if len(args) > 0 {
 		return &logger{l.SugaredLogger.With(args...)}
 	}
+
 	return l
 }

@@ -14,6 +14,7 @@ services:
     restart: on-failure
     volumes:
       - ../../config/config-docker.yaml:/usr/app/config/config.yaml
+      - random_service_logs:/tmp/log/
     ports:
       - 8069:8069
       - 8071:8071 # metrics
@@ -193,6 +194,7 @@ services:
     image: grafana/agent:latest
     volumes:
       - ./config/agent.yaml:/etc/agent-config/agent.yaml
+      - random_service_logs:/tmp/log/
     entrypoint:
       - /bin/agent
       - -server.http.address=0.0.0.0:12345
@@ -228,6 +230,7 @@ volumes:
   minio-data:
   tempo_data:
   loki_data:
+  random_service_logs:
 
 # Network
 networks:

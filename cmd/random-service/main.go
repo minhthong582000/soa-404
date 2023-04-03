@@ -12,9 +12,6 @@ import (
 func main() {
 	ctx := context.Background()
 
-	// Logging
-	logger := log.New()
-
 	// Read config
 	v, err := config.LoadConfig("config/config.yaml")
 	if err != nil {
@@ -26,6 +23,9 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+
+	// Logging
+	logger := log.New(config.Logs)
 
 	server := server.New(logger, ctx, config)
 

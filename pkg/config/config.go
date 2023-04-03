@@ -21,6 +21,13 @@ type Client struct {
 	Name       string `mapstructure:"name" validate:"required"`
 }
 
+// Logger config
+type Logs struct {
+	Development bool   `mapstructure:"development"`
+	Level       string `mapstructure:"level" validate:"required,oneof=debug info warn error dpanic panic fatal"`
+	Path        string `mapstructure:"path"`
+}
+
 // Metrics config
 type Metrics struct {
 	BindAddr string `mapstructure:"bind_addr" validate:"required"`
@@ -41,6 +48,7 @@ type Tracing struct {
 type Config struct {
 	Server  Server  `mapstructure:"server" validate:"required"`
 	Client  Client  `mapstructure:"client" validate:"required"`
+	Logs    Logs    `mapstructure:"logs" validate:"required"`
 	Metrics Metrics `mapstructure:"metrics" validate:"required"`
 	Tracing Tracing `mapstructure:"tracing" validate:"required"`
 }

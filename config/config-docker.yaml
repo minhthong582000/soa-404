@@ -15,6 +15,11 @@ client:
   server_addr: random_service:8069
   name: "random_client"
 
+logs:
+  level: debug # can be debug, info, warn, error, or fatal
+  development: false
+  path: /tmp/log/ # Leave empty to disable file logging
+
 metrics:
   bind_addr: 0.0.0.0:8071
 

@@ -15,6 +15,9 @@ datasources:
     secureJsonData:
       httpHeaderValue1: "demo"
     isDefault: true
+    exemplarTraceIdDestinations:
+      - datasourceUid: "tempo"
+        name: "trace_id"
   - name: Mimir Alertmanager
     uid: alertmanager
     type: alertmanager
@@ -42,9 +45,15 @@ datasources:
     jsonData:
       tracesToMetrics:
         datasourceUid: "mimir"
+        tags: ["job"]
         queries:
           - name: "Sample query"
             query: "sum(rate(traces_spanmetrics_latency_bucket{$__tags}[5m]))"
+          - name: "Sample query 2"
+            query: rate(random_server_hits_total{$__tags}[5m])
+      tracesToLogs:
+        datasourceUid: "loki"
+        tags: ["job"]
       serviceMap:
         datasourceUid: "mimir"
       search:
@@ -63,9 +72,10 @@ datasources:
     isDefault: false
     version: 1
     editable: true
-    # jsonData:
-    #   derivedFields:
-    #     - datasourceUid: tempo
-    #       matcherRegex: tid=(\w+)
-    #       name: TraceID
-    #       url: $${__value.raw}
+    jsonData:
+      derivedFields:
+        - name: TraceID
+          datasourceUid: tempo
+          # Match regex for extracting traceID from json
+          matcherRegex: '"trace_id":"([^"]+)"'
+          url: $${__value.raw}
