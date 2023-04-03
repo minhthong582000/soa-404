@@ -14,7 +14,7 @@ metrics:
         - job_name: local_scrape
           static_configs:
             - targets: ["127.0.0.1:12345"]
-        - job_name: random-service
+        - job_name: random_service
           static_configs:
             - targets: ["${RANDOM_SERVICE_HOST:-localhost:9001}"]
 
@@ -33,11 +33,11 @@ logs:
         #    labels:
         #      job: varlogs
         #      __path__: /var/log/*log
-        - job_name: random-service
+        - job_name: random_service
           static_configs:
             - targets: ["${RANDOM_SERVICE_HOST:-localhost:9001}"]
               labels:
-                job: random-service
+                job: random_service
                 __path__: /tmp/log/app.log
 
 traces:
@@ -71,13 +71,7 @@ traces:
         backend: logs_instance
         logs_instance_name: default
         roots: true
-      scrape_configs:
-        - job_name: random-service
-          static_configs:
-            - targets: ["${RANDOM_SERVICE_HOST:-localhost:9001}"]
-              labels:
-                job: random-service
-                __path__: /tmp/log/app.log
+        spans: true
 
 #
 # Integrations

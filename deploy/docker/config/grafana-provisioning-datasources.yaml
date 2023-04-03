@@ -53,7 +53,14 @@ datasources:
             query: rate(random_server_hits_total{$__tags}[5m])
       tracesToLogs:
         datasourceUid: "loki"
-        tags: ["job"]
+        mapTagNamesEnabled: true
+        filterByTraceID: true
+        filterBySpanID: true
+        spanEndTimeShift: 5m
+        spanStartTimeShift: -5m
+        mappedTags:
+          - key: "service.name"
+            value: "job"
       serviceMap:
         datasourceUid: "mimir"
       search:
