@@ -23,6 +23,8 @@ type PrometheusMetrics struct {
 
 func CreateMetrics(address string, name string) (Metrics, error) {
 	var metr PrometheusMetrics
+
+	// Collect hits total
 	metr.HitsTotal = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: name + "_hits_total",
 	})
@@ -30,6 +32,7 @@ func CreateMetrics(address string, name string) (Metrics, error) {
 		return nil, err
 	}
 
+	// Collect hits by status, method, path
 	metr.Hits = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: name + "_hits",
@@ -40,6 +43,7 @@ func CreateMetrics(address string, name string) (Metrics, error) {
 		return nil, err
 	}
 
+	// Collect response time by status, method, path with histogram
 	metr.Times = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name: name + "_times",
@@ -50,6 +54,7 @@ func CreateMetrics(address string, name string) (Metrics, error) {
 		return nil, err
 	}
 
+	// Collect build info
 	if err := prometheus.Register(collectors.NewBuildInfoCollector()); err != nil {
 		return nil, err
 	}

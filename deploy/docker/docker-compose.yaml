@@ -191,7 +191,7 @@ services:
       - observability
 
   agent:
-    image: grafana/agent:latest
+    image: grafana/agent:v0.32.1
     volumes:
       - ./config/agent.yaml:/etc/agent-config/agent.yaml
       - random_service_logs:/tmp/log/

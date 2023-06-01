@@ -5,7 +5,8 @@ metrics:
   global:
     scrape_interval: 60s
     remote_write:
-      - url: http://${REMOTE_WRITE_HOST:-localhost:9009}/api/v1/push
+      - name: default
+        url: http://${REMOTE_WRITE_HOST:-localhost:9009}/api/v1/push
         headers:
           X-Scope-OrgID: demo
   configs:
