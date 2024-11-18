@@ -41,6 +41,10 @@ func (c Client) GetRandNumber(ctx context.Context, seed int64) (int64, error) {
 	return reply.Number, nil
 }
 
+func registerDexHandler(router *echo.Echo) {
+	return
+}
+
 // HttpClient runs the client.
 func HttpClient(config *config.Config) error {
 	// Tracing
@@ -109,6 +113,10 @@ func HttpClient(config *config.Config) error {
 			"number": randNum,
 		})
 	})
+	if config.Authentication.Enabled { // Register Dex authentication handler
+		registerDexHandler(router)
+	}
+
 	if err := router.Start(config.Client.BindAddr); err != nil {
 		log.Fatal(err)
 	}
