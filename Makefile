@@ -20,10 +20,10 @@ docker:
 	docker build -t client -f deploy/docker/Dockerfile.client .
 
 run:
-	docker-compose -f deploy/docker/docker-compose.yaml up -d --build
+	docker compose -f deploy/docker/docker-compose.yaml up -d --build
 
 stop:
-	docker-compose -f deploy/docker/docker-compose.yaml down
+	docker compose -f deploy/docker/docker-compose.yaml down
 
 lint-prepare:
 	@echo "Installing golangci-lint" 

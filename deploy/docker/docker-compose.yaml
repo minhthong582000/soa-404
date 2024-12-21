@@ -1,5 +1,3 @@
-version: "3.9"
-
 x-logging: &loki-logging
   driver: json-file
   options:
@@ -38,7 +36,55 @@ services:
     logging:
       <<: *loki-logging
     depends_on:
-      - random_service
+      random_service:
+        condition: service_started
+
+  # --- Uncomment to enable Grafana Beyla auto instrumentation.
+  # --- This must be run on a Linux machine with ebpf enabled.
+  #
+  # random_service_trace:
+  #   container_name: random_service_trace
+  #   image: grafana/beyla:latest
+  #   pid: "service:random_service"
+  #   privileged: true
+  #   restart: on-failure
+  #   volumes:
+  #     - /sys/kernel/security:/sys/kernel/security
+  #   environment:
+  #     BEYLA_PRINT_TRACES: true
+  #     BEYLA_OPEN_PORT: "8069"
+  #     BEYLA_SERVICE_NAMESPACE: "soa"
+  #     OTEL_SERVICE_NAME: "random_service_beyla"
+  #     # BEYLA_LOG_LEVEL: "DEBUG"
+  #     OTEL_EXPORTER_OTLP_ENDPOINT: "http://agent:4318"
+  #     BEYLA_OTEL_INSECURE_SKIP_VERIFY: true
+  #     BEYLA_OTEL_TRACES_INSTRUMENTATIONS: grpc
+  #   network_mode: "service:random_service"
+  #   depends_on:
+  #     random_service:
+  #       condition: service_started
+
+  # client_trace:
+  #   container_name: client_trace
+  #   image: grafana/beyla:latest
+  #   privileged: true
+  #   restart: on-failure
+  #   volumes:
+  #     - /sys/kernel/security:/sys/kernel/security
+  #   environment:
+  #     BEYLA_PRINT_TRACES: true
+  #     BEYLA_OPEN_PORT: "8070"
+  #     BEYLA_SERVICE_NAMESPACE: "soa"
+  #     OTEL_SERVICE_NAME: "random_client_beyla"
+  #     # BEYLA_LOG_LEVEL: "DEBUG"
+  #     OTEL_EXPORTER_OTLP_ENDPOINT: "http://agent:4318"
+  #     BEYLA_OTEL_INSECURE_SKIP_VERIFY: true
+  #     BEYLA_OTEL_TRACES_INSTRUMENTATIONS: http
+  #   pid: "service:client"
+  #   network_mode: "service:client"
+  #   depends_on:
+  #     client:
+  #       condition: service_started
 
   # Since the Loki containers are running as user 10001 and the mounted data volume is owned by root,
   # Loki would not have permissions to create the directories.
@@ -217,6 +263,7 @@ services:
       - "mimir-1"
       - "mimir-2"
       - "mimir-3"
+      - "tempo"
       - "random_service"
       - "client"
     networks:
