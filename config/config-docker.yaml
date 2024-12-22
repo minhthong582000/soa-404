@@ -25,6 +25,6 @@ metrics:
 
 tracing:
   otlp:
-    enabled: false
+    enabled: true
     collector_url: agent:4317
     insecure: true
