@@ -60,11 +60,13 @@ func (s Server) Run() error {
 	)
 
 	// Tracing
-	tracer, err := tracing.TracerFactory(tracing.OLTP, tracing.TracerConfig{
-		ServiceName:  s.config.Server.Name,
-		CollectorURL: s.config.Tracing.OLTPTracing.CollectorAddr,
-		Insecure:     s.config.Tracing.OLTPTracing.Insecure,
-	})
+	tracer, err := tracing.TracerFactory(
+		tracing.WithProvider(tracing.OTLP),
+		tracing.WithCollectorURL(s.config.Tracing.OLTPTracing.CollectorAddr),
+		tracing.WithEnabled(s.config.Tracing.OLTPTracing.Enabled),
+		tracing.WithInsecure(s.config.Tracing.OLTPTracing.Insecure),
+		tracing.WithServiceName(s.config.Server.Name),
+	)
 	if err != nil {
 		s.logger.Errorf("TracerFactory Error: %s", err)
 	}

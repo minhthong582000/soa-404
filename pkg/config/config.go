@@ -35,8 +35,9 @@ type Metrics struct {
 
 // Tracing config for OTLP
 type OTLPTracing struct {
+	Enabled       bool   `mapstructure:"enabled"`
 	CollectorAddr string `mapstructure:"collector_url" validate:"required"`
-	Insecure      bool   `mapstructure:"insecure" validate:"required"`
+	Insecure      bool   `mapstructure:"insecure"`
 }
 
 // Tracing config
