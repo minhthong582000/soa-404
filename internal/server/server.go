@@ -72,7 +72,6 @@ func (s Server) Run() error {
 	// Register logs & metrics interceptor
 	in := interceptors.NewInterceptorManager(s.logger, metrics)
 	grpcServer := grpc.NewServer(
-		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.ChainUnaryInterceptor(
 			in.ExtractRequestID,
 			in.Logger,
@@ -81,6 +80,7 @@ func (s Server) Run() error {
 			grpc_ctxtags.UnaryServerInterceptor(),
 			recovery.UnaryServerInterceptor(),
 		),
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 	)
 
 	// Random service
