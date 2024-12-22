@@ -1,7 +1,7 @@
 x-logging: &loki-logging
   driver: json-file
   options:
-    tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"   
+    tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
 services:
   random_service:
@@ -19,7 +19,7 @@ services:
     logging:
       <<: *loki-logging
     networks:
-        - service
+      - service
 
   client:
     container_name: client
@@ -56,14 +56,16 @@ services:
   #     BEYLA_SERVICE_NAMESPACE: "soa"
   #     OTEL_SERVICE_NAME: "random_service_beyla"
   #     # BEYLA_LOG_LEVEL: "DEBUG"
-  #     OTEL_EXPORTER_OTLP_ENDPOINT: "http://agent:4318"
+  #     OTEL_EXPORTER_OTLP_ENDPOINT: "http://agent:4317"
+  #     OTEL_EXPORTER_OTLP_TRACES_INSECURE: true
+  #     OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
   #     BEYLA_OTEL_INSECURE_SKIP_VERIFY: true
   #     BEYLA_OTEL_TRACES_INSTRUMENTATIONS: grpc
   #   network_mode: "service:random_service"
   #   depends_on:
   #     random_service:
   #       condition: service_started
-
+  #
   # client_trace:
   #   container_name: client_trace
   #   image: grafana/beyla:latest
@@ -77,7 +79,9 @@ services:
   #     BEYLA_SERVICE_NAMESPACE: "soa"
   #     OTEL_SERVICE_NAME: "random_client_beyla"
   #     # BEYLA_LOG_LEVEL: "DEBUG"
-  #     OTEL_EXPORTER_OTLP_ENDPOINT: "http://agent:4318"
+  #     OTEL_EXPORTER_OTLP_ENDPOINT: "http://agent:4317"
+  #     OTEL_EXPORTER_OTLP_TRACES_INSECURE: true
+  #     OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
   #     BEYLA_OTEL_INSECURE_SKIP_VERIFY: true
   #     BEYLA_OTEL_TRACES_INSTRUMENTATIONS: http
   #   pid: "service:client"
@@ -86,48 +90,61 @@ services:
   #     client:
   #       condition: service_started
 
-  # Since the Loki containers are running as user 10001 and the mounted data volume is owned by root,
-  # Loki would not have permissions to create the directories.
-  # Therefore the init container changes permissions of the mounted directory.
-  loki_init:
-    image: grafana/loki:2.7.5
-    user: root
-    entrypoint:
-      - "chown"
-      - "10001:10001"
-      - "/data/loki"
-    volumes:
-      - loki_data:/data/loki
-    networks:
-      - observability
-
-  loki:
-    image: grafana/loki:2.7.5
-    command: 
-     - "-config.file=/etc/loki/loki.yaml"
-     - "-config.expand-env=true"
+  loki_read:
+    image: grafana/loki:3.3.2
+    command: "-config.file=/etc/loki/loki.yaml -target=read"
     volumes:
       - ./config/loki.yaml:/etc/loki/loki.yaml
-      - loki_data:/data/loki
+    depends_on:
+      - minio
     networks:
       - observability
+
+  loki_write:
+    image: grafana/loki:3.3.2
+    command: "-config.file=/etc/loki/loki.yaml -target=write"
+    volumes:
+      - ./config/loki.yaml:/etc/loki/loki.yaml
     depends_on:
-      - loki_init
+      - minio
+    networks:
+      - observability
+
+  loki_backend:
+    image: grafana/loki:3.3.2
+    command: "-config.file=/etc/loki/loki.yaml -target=backend -legacy-read-mode=false"
+    volumes:
+      - ./config/loki.yaml:/etc/loki/loki.yaml
+    depends_on:
+      - load-balancer
+      - minio
+    networks:
+      - observability
 
   minio:
-    image: minio/minio:RELEASE.2023-03-24T21-41-23Z
-    entrypoint: [""]
-    command: ["sh", "-c", "mkdir -p /data/mimir && minio server --quiet /data"]
+    image: minio/minio:RELEASE.2024-12-18T13-15-44Z
+    entrypoint:
+      - sh
+      - -euc
+      - |
+        mkdir -p /data/loki-data && \
+        mkdir -p /data/loki-ruler && \
+        mkdir -p /data/mimir && \
+        minio server /data
     environment:
-      - MINIO_ROOT_USER=mimir
+      - MINIO_ROOT_USER=minio
       - MINIO_ROOT_PASSWORD=supersecret
+      - MINIO_PROMETHEUS_AUTH_TYPE=public
+      - MINIO_UPDATE=off
+    ports:
+      - 9000
     volumes:
       - minio-data:/data
     networks:
       - observability
 
   grafana:
-    image: grafana/grafana:9.4.7
+    image: grafana/grafana:11.4.0
     pull_policy: always
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
@@ -156,7 +173,7 @@ services:
       - observability
 
   prometheus:
-    image: prom/prometheus:v2.43.0
+    image: prom/prometheus:v3.0.1
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --log.level=error
@@ -174,7 +191,7 @@ services:
       - observability
 
   load-balancer:
-    image: nginx:1.23-alpine3.17
+    image: nginx:1.27-alpine3.20
     volumes:
       - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
@@ -185,7 +202,7 @@ services:
       - observability
 
   mimir-1:
-    image: grafana/mimir:2.7.1
+    image: grafana/mimir:2.14.2
     command: ["-config.file=/etc/mimir.yaml"]
     hostname: mimir-1
     depends_on:
@@ -198,7 +215,7 @@ services:
       - observability
 
   mimir-2:
-    image: grafana/mimir:2.7.1
+    image: grafana/mimir:2.14.2
     command: ["-config.file=/etc/mimir.yaml"]
     hostname: mimir-2
     depends_on:
@@ -211,7 +228,7 @@ services:
       - observability
 
   mimir-3:
-    image: grafana/mimir:2.7.1
+    image: grafana/mimir:2.14.2
     command: ["-config.file=/etc/mimir.yaml"]
     hostname: mimir-3
     depends_on:
@@ -224,46 +241,44 @@ services:
       - observability
 
   tempo:
-    image: grafana/tempo:2.0.1
-    command: 
+    image: grafana/tempo:2.6.1
+    command:
       - "-config.file=/etc/tempo.yaml"
       - "-mem-ballast-size-mbs=1024"
       - "-config.expand-env=true"
     volumes:
-    - ./config/tempo.yaml:/etc/tempo.yaml
+      - ./config/tempo.yaml:/etc/tempo.yaml
     environment:
       REMOTE_WRITE_HOST: load-balancer:9009
     networks:
       - observability
 
   agent:
-    image: grafana/agent:v0.32.1
-    volumes:
-      - ./config/agent.yaml:/etc/agent-config/agent.yaml
-      - random_service_logs:/tmp/log/
-    entrypoint:
-      - /bin/agent
-      - -server.http.address=0.0.0.0:12345
-      - -config.file=/etc/agent-config/agent.yaml
-      - -metrics.wal-directory=/tmp/agent/wal
-      - -enable-features=integrations-next
-      - -config.expand-env
-      - -config.enable-read-api
-    environment:
-      HOSTNAME: agent
-      REMOTE_WRITE_HOST: load-balancer:9009
-      TEMPO_HOST: tempo:4317
-      RANDOM_SERVICE_HOST: random_service:8071
-      LOKI_HOST: loki:3100
+    image: grafana/alloy:v1.5.1
     ports:
-      - "12345:12345" # Metrics receiver
-      - "4317:4317" # OpenTelemetry gRPC receiver
-      - "4318:4318" # OpenTelemetry HTTP receiver
+      - "12347:12345"
+      - "12348:12348"
+      - "6832:6832"
+      - "55679:55679"
+    volumes:
+      - ./config/config.alloy:/etc/alloy/config.alloy
+      - random_service_logs:/tmp/log/
+    command:
+      [
+        "run",
+        "--server.http.listen-addr=0.0.0.0:12345",
+        "--stability.level=public-preview",
+        "/etc/alloy/config.alloy",
+      ]
     depends_on:
       - "mimir-1"
       - "mimir-2"
       - "mimir-3"
       - "tempo"
+      - "loki_backend"
+      - "loki_read"
+      - "loki_write"
+      - "load-balancer"
       - "random_service"
       - "client"
     networks:

@@ -1,56 +1,48 @@
+---
 auth_enabled: false
 
 server:
+  http_listen_address: 0.0.0.0
   http_listen_port: 3100
 
-ingester:
-  wal:
-    enabled: true
-    dir: /data/loki/wal
-  lifecycler:
-    address: 127.0.0.1
-    ring:
-      kvstore:
-        store: inmemory
-      replication_factor: 1
-    final_sleep: 0s
-  chunk_idle_period: 5m
-  max_chunk_age: 1h
-  chunk_target_size: 1048576
-  chunk_retain_period: 30s
-  max_transfer_retries: 0
+memberlist:
+  join_members: ["loki_read", "loki_read", "loki_backend"]
+  dead_node_reclaim_time: 30s
+  gossip_to_dead_nodes_time: 15s
+  left_ingesters_timeout: 30s
+  bind_addr: ["0.0.0.0"]
+  bind_port: 7946
+  gossip_interval: 2s
 
 schema_config:
   configs:
-    - from: 2021-01-01
-      store: boltdb-shipper
-      object_store: filesystem
-      schema: v11
+    - from: 2023-01-01
+      store: tsdb
+      object_store: s3
+      schema: v13
       index:
         prefix: index_
         period: 24h
 
-storage_config:
-  boltdb_shipper:
-    active_index_directory: /data/loki/boltdb-shipper-active
-    cache_location: /data/loki/boltdb-shipper-cache
-    cache_ttl: 24h
-    shared_store: filesystem
-  filesystem:
-    directory: /data/loki/chunks
+common:
+  path_prefix: /loki
+  replication_factor: 1
+  compactor_address: http://loki_backend:3100
+  storage:
+    s3:
+      endpoint: minio:9000
+      insecure: true
+      bucketnames: loki-data
+      access_key_id: minio
+      secret_access_key: supersecret
+      s3forcepathstyle: true
+  ring:
+    kvstore:
+      store: memberlist
+ruler:
+  storage:
+    s3:
+      bucketnames: loki-ruler
 
 compactor:
-  working_directory: /data/loki/boltdb-shipper-compactor
-  shared_store: filesystem
-
-limits_config:
-  enforce_metric_name: false
-  reject_old_samples: true
-  reject_old_samples_max_age: 168h
-
-chunk_store_config:
-  max_look_back_period: 0s
-
-table_manager:
-  retention_deletes_enabled: true
-  retention_period: 24h
+  working_directory: /tmp/compactor

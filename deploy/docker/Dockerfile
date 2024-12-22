@@ -1,5 +1,5 @@
 # Builder
-FROM golang:1.20.2-alpine3.17 as builder
+FROM golang:1.23-alpine3.21 as builder
 
 WORKDIR /usr/app
 
@@ -14,7 +14,7 @@ COPY . ./
 RUN make service
 
 # Distribution
-FROM alpine:3.17
+FROM alpine:3.21
 
 WORKDIR /usr/app
 
