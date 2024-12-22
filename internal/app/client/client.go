@@ -44,7 +44,7 @@ func (c Client) GetRandNumber(ctx context.Context, seed int64) (int64, error) {
 // HttpClient runs the client.
 func HttpClient(config *config.Config) error {
 	// Tracing
-	tracer, err := tracing.TracerFactory(
+	_, err := tracing.TracerFactory(
 		tracing.WithProvider(tracing.OTLP),
 		tracing.WithCollectorURL(config.Tracing.OLTPTracing.CollectorAddr),
 		tracing.WithEnabled(config.Tracing.OLTPTracing.Enabled),
@@ -54,11 +54,6 @@ func HttpClient(config *config.Config) error {
 	if err != nil {
 		log.Fatalf("TracerFactory Error: %s", err)
 	}
-	cleanup, err := tracer.InitTracer()
-	if err != nil {
-		log.Fatalf("InitTracer Error: %s", err)
-	}
-	defer cleanup(context.Background())
 
 	kacp := keepalive.ClientParameters{
 		Timeout: 10 * time.Second,

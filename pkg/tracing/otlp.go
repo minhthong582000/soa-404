@@ -10,11 +10,14 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/credentials"
 )
 
 // OTLPTracer is a tracer that uses OpenTelemetry to send traces to an OTLP collector
 type OTLPTracer struct {
+	tracer trace.Tracer
+
 	config *TracerConfig
 }
 
@@ -24,11 +27,11 @@ func NewOTLPTracer(config *TracerConfig) Tracer {
 	}
 }
 
-func (t OTLPTracer) InitTracer() (func(context.Context) error, error) {
+func (t *OTLPTracer) InitTracer() error {
 	ctx := context.Background()
 
 	if !t.config.Enabled {
-		return nil, nil
+		return nil
 	}
 
 	// Setup GRPC connection to collector
@@ -44,7 +47,7 @@ func (t OTLPTracer) InitTracer() (func(context.Context) error, error) {
 		),
 	)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	resources, err := resource.New(
@@ -55,7 +58,7 @@ func (t OTLPTracer) InitTracer() (func(context.Context) error, error) {
 		),
 	)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	provider := sdktrace.NewTracerProvider(
@@ -66,5 +69,20 @@ func (t OTLPTracer) InitTracer() (func(context.Context) error, error) {
 	otel.SetTracerProvider(provider)
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 
-	return exporter.Shutdown, nil
+	t.tracer = otel.Tracer(t.config.ServiceName)
+
+	return nil
+}
+
+func (t *OTLPTracer) StartSpan(ctx context.Context, name string) context.Context {
+	ctx, _ = t.tracer.Start(ctx, name)
+	return ctx
+}
+
+func (t *OTLPTracer) EndSpan(ctx context.Context) {
+	span := trace.SpanFromContext(ctx)
+
+	if span != nil {
+		span.End()
+	}
 }

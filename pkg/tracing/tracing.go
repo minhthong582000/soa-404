@@ -3,7 +3,34 @@ package tracing
 import (
 	"context"
 	"errors"
+	"sync"
 )
+
+// Tracer is the interface for the tracer
+type Tracer interface {
+	InitTracer() error
+	StartSpan(ctx context.Context, name string) context.Context
+	EndSpan(ctx context.Context)
+}
+
+var (
+	globalTracer Tracer
+	rwMutex      sync.RWMutex
+)
+
+func GetCurrenTracer() Tracer {
+	rwMutex.RLock()
+	defer rwMutex.RUnlock()
+
+	return globalTracer
+}
+
+func SetglobalTracer(tracer Tracer) {
+	rwMutex.Lock()
+	defer rwMutex.Unlock()
+
+	globalTracer = tracer
+}
 
 type Provider string
 
@@ -13,11 +40,6 @@ const (
 	OTLP    Provider = "OTLP"
 )
 
-// Tracer is the interface for the tracer
-type Tracer interface {
-	InitTracer() (func(context.Context) error, error)
-}
-
 // TracerFactory returns a tracer based on the type
 func TracerFactory(opts ...Option) (Tracer, error) {
 	config := &TracerConfig{}
@@ -25,9 +47,10 @@ func TracerFactory(opts ...Option) (Tracer, error) {
 		opt(config)
 	}
 
+	var tracer Tracer
 	switch config.Provider {
 	case OTLP:
-		return NewOTLPTracer(config), nil
+		tracer = NewOTLPTracer(config)
 	case Jaeger:
 		return nil, errors.New("jaeger not implemented yet")
 	case Datadog:
@@ -35,4 +58,13 @@ func TracerFactory(opts ...Option) (Tracer, error) {
 	default:
 		return nil, errors.New("invalid tracer type")
 	}
+
+	err := tracer.InitTracer()
+	if err != nil {
+		return nil, err
+	}
+
+	SetglobalTracer(tracer)
+
+	return GetCurrenTracer(), nil
 }

@@ -5,22 +5,20 @@ import (
 	"math/rand"
 
 	"github.com/minhthong582000/soa-404/internal/entity"
-	"go.opentelemetry.io/otel/trace"
+	"github.com/minhthong582000/soa-404/pkg/tracing"
 )
 
 type RandomRepo struct {
-	tracer trace.Tracer
 }
 
-func NewRepository(tracer trace.Tracer) entity.IRandomRepository {
-	return &RandomRepo{
-		tracer: tracer,
-	}
+func NewRepository() entity.IRandomRepository {
+	return &RandomRepo{}
 }
 
 func (r *RandomRepo) Get(ctx context.Context, seed int64) (entity.Random, error) {
-	_, span := r.tracer.Start(ctx, "RandomService.Repository.GetRandNumber")
-	defer span.End()
+	tracer := tracing.GetCurrenTracer()
+	ctx = tracer.StartSpan(ctx, "RandomService.Repository.GetRandNumber")
+	defer tracer.EndSpan(ctx)
 
 	rand := rand.New(rand.NewSource(seed))
 	randNum := rand.Int63()
