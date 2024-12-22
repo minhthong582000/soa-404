@@ -64,15 +64,13 @@ func HttpClient(config *config.Config) error {
 		Timeout: 10 * time.Second,
 		Time:    1 * time.Minute,
 	}
-	// Configure gRPC client
-	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	opts = append(opts, grpc.WithKeepaliveParams(kacp))
-	opts = append(opts, grpc.WithUnaryInterceptor(otelgrpc.UnaryClientInterceptor()))
-	opts = append(opts, grpc.WithStreamInterceptor(otelgrpc.StreamClientInterceptor()))
-
 	// Set up a connection to the server
-	conn, err := grpc.Dial(config.Client.ServerAddr, opts...)
+	conn, err := grpc.NewClient(
+		config.Client.ServerAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithKeepaliveParams(kacp),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+	)
 	if err != nil {
 		log.Fatalf("fail to dial: %v", err)
 	}

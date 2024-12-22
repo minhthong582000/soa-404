@@ -79,10 +79,9 @@ func (s Server) Run() error {
 	// Register logs & metrics interceptor
 	in := interceptors.NewInterceptorManager(s.logger, metrics)
 	grpcServer := grpc.NewServer(
-		grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.ChainUnaryInterceptor(
 			in.ExtractRequestID,
-			otelgrpc.UnaryServerInterceptor(),
 			in.Logger,
 			in.Metrics,
 			grpc_prometheus.UnaryServerInterceptor,
