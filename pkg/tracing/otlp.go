@@ -75,11 +75,19 @@ func (t *OTLPTracer) InitTracer() error {
 }
 
 func (t *OTLPTracer) StartSpan(ctx context.Context, name string) context.Context {
+	if !t.config.Enabled {
+		return ctx
+	}
+
 	ctx, _ = t.tracer.Start(ctx, name)
 	return ctx
 }
 
 func (t *OTLPTracer) EndSpan(ctx context.Context) {
+	if !t.config.Enabled {
+		return
+	}
+
 	span := trace.SpanFromContext(ctx)
 
 	if span != nil {
