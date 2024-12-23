@@ -13,6 +13,19 @@ type Server struct {
 	Name     string `mapstructure:"name" validate:"required"`
 }
 
+// Server config
+type Authentication struct {
+	// Enable default is false
+	Enabled bool `mapstructure:"enable"`
+
+	Dex Dex `mapstructure:"dex"`
+}
+
+// Dex Authentication config
+type Dex struct {
+	DexURL string `mapstructure:"dex_url"`
+}
+
 // Client config
 type Client struct {
 	BindAddr   string `mapstructure:"bind_addr" validate:"required"`
@@ -52,11 +65,12 @@ type Tracing struct {
 
 // Config struct
 type Config struct {
-	Server  Server  `mapstructure:"server" validate:"required"`
-	Client  Client  `mapstructure:"client" validate:"required"`
-	Logs    Logs    `mapstructure:"logs" validate:"required"`
-	Metrics Metrics `mapstructure:"metrics" validate:"required"`
-	Tracing Tracing `mapstructure:"tracing" validate:"required"`
+	Server         Server         `mapstructure:"server" validate:"required"`
+	Authentication Authentication `mapstructure:"authentication" validate:"required"`
+	Client         Client         `mapstructure:"client" validate:"required"`
+	Logs           Logs           `mapstructure:"logs" validate:"required"`
+	Metrics        Metrics        `mapstructure:"metrics" validate:"required"`
+	Tracing        Tracing        `mapstructure:"tracing" validate:"required"`
 }
 
 // Load config file from given path

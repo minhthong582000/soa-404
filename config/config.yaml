@@ -10,6 +10,11 @@ server:
   bind_addr: 127.0.0.1:8069
   name: "random_server"
 
+authentication:
+  enabled: false
+  dex:
+    dex_url: ""
+
 client:
   bind_addr: 127.0.0.1:8070
   server_addr: 127.0.0.1:8069
