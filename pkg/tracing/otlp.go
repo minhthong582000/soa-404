@@ -21,7 +21,7 @@ type OTLPTracer struct {
 	config *TracerConfig
 }
 
-func NewOTLPTracer(config *TracerConfig) Tracer {
+func NewOTLPTracer(config *TracerConfig) *OTLPTracer {
 	return &OTLPTracer{
 		config: config,
 	}

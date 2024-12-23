@@ -11,7 +11,7 @@ import (
 type RandomRepo struct {
 }
 
-func NewRepository() entity.IRandomRepository {
+func NewRepository() *RandomRepo {
 	return &RandomRepo{}
 }
 

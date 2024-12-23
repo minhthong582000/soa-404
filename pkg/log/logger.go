@@ -46,7 +46,7 @@ type logger struct {
 }
 
 // New creates a new logger using the default configuration.
-func New(config config.Logs) ILogger {
+func New(config config.Logs) *logger {
 	// Get the log level from the config
 	level, exist := loggerLevelMap[config.Level]
 	if !exist {
@@ -103,7 +103,7 @@ func New(config config.Logs) ILogger {
 }
 
 // NewWithZap creates a new logger using the preconfigured zap logger.
-func NewWithZap(l *zap.Logger) ILogger {
+func NewWithZap(l *zap.Logger) *logger {
 	return &logger{l.Sugar()}
 }
 

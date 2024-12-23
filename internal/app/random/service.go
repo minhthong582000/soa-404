@@ -12,7 +12,7 @@ type RandomService struct {
 	repo entity.IRandomRepository
 }
 
-func NewService(repo entity.IRandomRepository) entity.IRandomService {
+func NewService(repo entity.IRandomRepository) *RandomService {
 	return &RandomService{
 		repo: repo,
 	}
