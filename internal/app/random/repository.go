@@ -16,7 +16,7 @@ func NewRepository() *RandomRepo {
 }
 
 func (r *RandomRepo) Get(ctx context.Context, seed int64) (entity.Random, error) {
-	tracer := tracing.GetCurrenTracer()
+	tracer := tracing.GetTracer()
 	ctx = tracer.StartSpan(ctx, "RandomService.Repository.GetRandNumber")
 	defer tracer.EndSpan(ctx)
 

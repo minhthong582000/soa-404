@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"log"
 	"strconv"
 	"time"
 
@@ -10,11 +9,15 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	pb "github.com/minhthong582000/soa-404/api/v1/pb/random"
 	"github.com/minhthong582000/soa-404/pkg/config"
+	"github.com/minhthong582000/soa-404/pkg/log"
+	http_middleware "github.com/minhthong582000/soa-404/pkg/middleware"
+
 	"github.com/minhthong582000/soa-404/pkg/tracing"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/metadata"
 )
 
 // Client is a simple client for the Random service.
@@ -43,6 +46,10 @@ func (c Client) GetRandNumber(ctx context.Context, seed int64) (int64, error) {
 
 // HttpClient runs the client.
 func HttpClient(config *config.Config) error {
+	// Logs
+	logger := log.Init(&config.Logs)
+	httpMiddleware := http_middleware.NewMiddleware(logger)
+
 	// Tracing
 	_, err := tracing.TracerFactory(
 		tracing.WithProvider(tracing.OTLP),
@@ -52,7 +59,8 @@ func HttpClient(config *config.Config) error {
 		tracing.WithServiceName(config.Client.Name),
 	)
 	if err != nil {
-		log.Fatalf("TracerFactory Error: %s", err)
+		logger.Errorf("TracerFactory Error: %s", err)
+		return err
 	}
 
 	kacp := keepalive.ClientParameters{
@@ -67,7 +75,8 @@ func HttpClient(config *config.Config) error {
 		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 	)
 	if err != nil {
-		log.Fatalf("fail to dial: %v", err)
+		logger.Errorf("fail to dial: %v", err)
+		return err
 	}
 	defer conn.Close()
 
@@ -76,6 +85,7 @@ func HttpClient(config *config.Config) error {
 
 	router := echo.New()
 	router.Use(middleware.RequestID())
+	router.Use(httpMiddleware.RequestLogger())
 	router.GET("/healthz", func(c echo.Context) error {
 		return c.String(200, "OK")
 	})
@@ -93,8 +103,14 @@ func HttpClient(config *config.Config) error {
 			return c.String(400, "seed must be an integer")
 		}
 
+		// Extract Client IP
+		clientIP := c.RealIP()
+
+		// Add client IP to gRPC metadata
+		ctx := metadata.AppendToOutgoingContext(c.Request().Context(), "x-client-ip", clientIP)
+
 		// Call the server
-		randNum, err := client.GetRandNumber(c.Request().Context(), seed)
+		randNum, err := client.GetRandNumber(ctx, seed)
 		if err != nil {
 			return c.String(500, "failed to get random number")
 		}
@@ -105,7 +121,8 @@ func HttpClient(config *config.Config) error {
 		})
 	})
 	if err := router.Start(config.Client.BindAddr); err != nil {
-		log.Fatal(err)
+		logger.Errorf("failed to start server: %v", err)
+		return err
 	}
 
 	return nil

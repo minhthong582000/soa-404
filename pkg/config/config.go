@@ -2,7 +2,6 @@ package config
 
 import (
 	"errors"
-	"os"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
@@ -23,9 +22,15 @@ type Client struct {
 
 // Logger config
 type Logs struct {
-	Development bool   `mapstructure:"development"`
-	Level       string `mapstructure:"level" validate:"required,oneof=debug info warn error dpanic panic fatal"`
-	Path        string `mapstructure:"path"`
+	Development      bool              `mapstructure:"development"`
+	Level            string            `mapstructure:"level" validate:"required,oneof=debug info warn error dpanic panic fatal"`
+	Path             string            `mapstructure:"path"`
+	AdditionalFields []AdditionalField `mapstructure:"additional_fields" validate:"dive"`
+}
+
+type AdditionalField struct {
+	FieldName string `mapstructure:"field_name" validate:"required"`
+	ValueFrom string `mapstructure:"value_from" validate:"required"`
 }
 
 // Metrics config
@@ -61,7 +66,7 @@ func LoadConfig(filename string) (*viper.Viper, error) {
 	v.SetConfigName(filename)
 	v.SetConfigType("yaml")
 	v.AddConfigPath(".")  // optionally look for config in the working directory
-	v.SetEnvPrefix("soa") // set env prefix with "SOA_", e.g. SOA_SERVER_BIND_ADDR
+	v.SetEnvPrefix("SOA") // set env prefix with "SOA_", e.g. SOA_SERVER_BIND_ADDR
 	v.AutomaticEnv()
 	if err := v.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
@@ -70,12 +75,8 @@ func LoadConfig(filename string) (*viper.Viper, error) {
 		return nil, err
 	}
 
-	// If yaml value is ${ENV}, replace the value with ENV value
+	// TODO: If yaml value is ${ENV}, replace the value with ENV value
 	// e.g. key: ${VALUE} -> key: ABC, if `VALUE` is set to `ABC`
-	for _, k := range v.AllKeys() {
-		val := v.GetString(k)
-		v.Set(k, os.ExpandEnv(val))
-	}
 
 	return v, nil
 }

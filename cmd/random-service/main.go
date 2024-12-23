@@ -6,7 +6,6 @@ import (
 
 	"github.com/minhthong582000/soa-404/internal/server"
 	"github.com/minhthong582000/soa-404/pkg/config"
-	"github.com/minhthong582000/soa-404/pkg/log"
 )
 
 func main() {
@@ -24,14 +23,8 @@ func main() {
 		return
 	}
 
-	// Logging
-	logger := log.New(config.Logs)
-
-	server := server.New(logger, ctx, config)
-
-	err = server.Run()
-	if err != nil {
+	server := server.New(ctx, config)
+	if err := server.Run(); err != nil {
 		fmt.Println(err)
-		return
 	}
 }

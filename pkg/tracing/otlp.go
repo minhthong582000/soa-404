@@ -17,7 +17,6 @@ import (
 // OTLPTracer is a tracer that uses OpenTelemetry to send traces to an OTLP collector
 type OTLPTracer struct {
 	tracer trace.Tracer
-
 	config *TracerConfig
 }
 
@@ -93,4 +92,32 @@ func (t *OTLPTracer) EndSpan(ctx context.Context) {
 	if span != nil {
 		span.End()
 	}
+}
+
+func (t *OTLPTracer) GetTraceID(ctx context.Context) string {
+	if !t.config.Enabled {
+		return ""
+	}
+
+	span := trace.SpanFromContext(ctx)
+	if span == nil {
+		return ""
+	}
+
+	sc := span.SpanContext()
+	return sc.TraceID().String()
+}
+
+func (t *OTLPTracer) GetSpanID(ctx context.Context) string {
+	if !t.config.Enabled {
+		return ""
+	}
+
+	span := trace.SpanFromContext(ctx)
+	if span == nil {
+		return ""
+	}
+
+	sc := span.SpanContext()
+	return sc.SpanID().String()
 }

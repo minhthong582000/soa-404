@@ -11,6 +11,8 @@ type Tracer interface {
 	InitTracer() error
 	StartSpan(ctx context.Context, name string) context.Context
 	EndSpan(ctx context.Context)
+	GetTraceID(ctx context.Context) string
+	GetSpanID(ctx context.Context) string
 }
 
 var (
@@ -18,14 +20,14 @@ var (
 	rwMutex      sync.RWMutex
 )
 
-func GetCurrenTracer() Tracer {
+func GetTracer() Tracer {
 	rwMutex.RLock()
 	defer rwMutex.RUnlock()
 
 	return globalTracer
 }
 
-func SetglobalTracer(tracer Tracer) {
+func SetTracer(tracer Tracer) {
 	rwMutex.Lock()
 	defer rwMutex.Unlock()
 
@@ -64,7 +66,7 @@ func TracerFactory(opts ...Option) (Tracer, error) {
 		return nil, err
 	}
 
-	SetglobalTracer(tracer)
+	SetTracer(tracer)
 
-	return GetCurrenTracer(), nil
+	return GetTracer(), nil
 }

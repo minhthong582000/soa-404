@@ -19,6 +19,9 @@ logs:
   level: debug # can be debug, info, warn, error, or fatal
   development: false
   path: /tmp/log/ # Leave empty to disable file logging
+  additional_fields:
+    - field_name: client_ip
+      value_from: x-client-ip
 
 metrics:
   bind_addr: 0.0.0.0:8071
