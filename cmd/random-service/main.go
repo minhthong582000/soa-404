@@ -1,16 +1,14 @@
 package main
 
 import (
-	"context"
 	"fmt"
 
-	"github.com/minhthong582000/soa-404/internal/server"
+	"github.com/minhthong582000/soa-404/internal/server/server"
 	"github.com/minhthong582000/soa-404/pkg/config"
+	"github.com/minhthong582000/soa-404/pkg/signals"
 )
 
 func main() {
-	ctx := context.Background()
-
 	// Read config
 	v, err := config.LoadConfig("config/config.yaml")
 	if err != nil {
@@ -23,8 +21,9 @@ func main() {
 		return
 	}
 
-	server := server.New(ctx, config)
-	if err := server.Run(); err != nil {
+	stopCh := signals.SetupSignalHandler()
+	s := server.New(config)
+	if err := s.Run(stopCh); err != nil {
 		fmt.Println(err)
 	}
 }

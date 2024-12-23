@@ -1,11 +1,8 @@
 package server
 
 import (
-	"context"
 	"fmt"
 	"net"
-	"os"
-	"os/signal"
 
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
@@ -25,19 +22,17 @@ import (
 // Server to serve the service.
 type Server struct {
 	config *config.Config
-	ctx    context.Context
 }
 
 // New returns a new server.
-func New(ctx context.Context, config *config.Config) *Server {
+func New(config *config.Config) *Server {
 	return &Server{
 		config: config,
-		ctx:    ctx,
 	}
 }
 
 // Run runs server.
-func (s Server) Run() error {
+func (s Server) Run(stopCh <-chan struct{}) error {
 	// gRPC listener
 	lis, err := net.Listen("tcp", s.config.Server.BindAddr)
 	if err != nil {
@@ -90,21 +85,27 @@ func (s Server) Run() error {
 	)
 	pb.RegisterRandomServiceServer(grpcServer, randomServer)
 
-	// graceful shutdown
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
+	errCh := make(chan error, 1)
+	defer func() {
+		logger.Infof("Shutting down gRPC server...")
+		grpcServer.GracefulStop()
+		close(errCh)
+	}()
+
+	// Run gRPC server
 	go func() {
-		for range c {
-			// sig is a ^C, handle it
-			logger.Info("shutting down gRPC server...")
-			grpcServer.GracefulStop()
-			<-s.ctx.Done()
+		logger.Infof("gRPC server is running on %s", s.config.Server.BindAddr)
+		if err := grpcServer.Serve(lis); err != nil {
+			errCh <- err
 		}
 	}()
 
-	logger.Infof("gRPC server is running on %s", s.config.Server.BindAddr)
-	if err := grpcServer.Serve(lis); err != nil {
-		return fmt.Errorf("failed to serve: %v", err)
+	// Wait for shutdown signal
+	select {
+	case <-stopCh:
+		logger.Infof("Received shutdown signal")
+	case err := <-errCh:
+		return err
 	}
 
 	return nil

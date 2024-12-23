@@ -3,11 +3,13 @@ package main
 import (
 	"fmt"
 
-	"github.com/minhthong582000/soa-404/internal/app/client"
+	"github.com/minhthong582000/soa-404/internal/server/client"
 	"github.com/minhthong582000/soa-404/pkg/config"
+	"github.com/minhthong582000/soa-404/pkg/signals"
 )
 
 func main() {
+	// Read config
 	v, err := config.LoadConfig("config/config.yaml")
 	if err != nil {
 		fmt.Println(err)
@@ -19,8 +21,9 @@ func main() {
 		return
 	}
 
-	err = client.HttpClient(config)
-	if err != nil {
+	stopCh := signals.SetupSignalHandler()
+	c := client.New(config)
+	if err := c.Run(stopCh); err != nil {
 		fmt.Println(err)
 	}
 }

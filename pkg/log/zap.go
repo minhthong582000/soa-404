@@ -145,7 +145,6 @@ func (l *logger) With(ctx context.Context, args ...interface{}) Logger {
 		args = append(args, zap.String("span_id", spanID))
 	}
 	if len(l.config.AdditionalFields) > 0 {
-		fmt.Println(l.config.AdditionalFields)
 		if headers, ok := metadata.FromIncomingContext(ctx); ok {
 			for _, header := range l.config.AdditionalFields {
 				if value := headers.Get(header.ValueFrom); len(value) > 0 {
