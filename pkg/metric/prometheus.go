@@ -27,6 +27,12 @@ func NewPrometheusMetrics() *prometheusMetrics {
 	}
 }
 
+func NewTmpPrometheusMetrics() *prometheusMetrics {
+	p := NewPrometheusMetrics()
+	p.registry.Register(collectors.NewBuildInfoCollector())
+	return p
+}
+
 func (p *prometheusMetrics) RunHTTPMetricsServer(ctx context.Context, address string) {
 	logger := log.GetLogger()
 

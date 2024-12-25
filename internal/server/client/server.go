@@ -53,7 +53,24 @@ func (s Server) Run(stopCh <-chan struct{}) error {
 	}
 
 	// Metrics
-	metrics, err := metric.MetricFactory(metric.WithProvider(metric.Prometheus))
+	// client_request_duration_seconds := &metric.Metric{
+	// 	Name:    "client_request_duration_seconds",
+	// 	Type:    metric.Histogram,
+	// 	Labels:  []string{"method", "status"},
+	// 	Buckets: []float64{0.1, 0.3, 1.5, 10.5},
+	// }
+	// client_request_count := &metric.Metric{
+	// 	Name:   "client_request_count",
+	// 	Type:   metric.Counter,
+	// 	Labels: []string{"method", "status"},
+	// }
+	metrics, err := metric.MetricFactory(
+		metric.WithProvider(metric.Prometheus),
+		// metric.WithMetrics(
+		// 	client_request_duration_seconds,
+		// 	client_request_count,
+		// ),
+	)
 	if err != nil {
 		logger.Errorf("CreateMetrics Error: %s", err)
 	}

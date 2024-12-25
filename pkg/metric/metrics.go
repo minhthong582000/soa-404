@@ -3,6 +3,7 @@ package metric
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 )
 
@@ -23,19 +24,25 @@ type Metrics interface {
 
 var (
 	globalMetric Metrics
-	rwMutex      sync.RWMutex
+	mutex        sync.Mutex
 )
 
 func GetMetric() Metrics {
-	rwMutex.RLock()
-	defer rwMutex.RUnlock()
+	if globalMetric == nil {
+		mutex.Lock()
+		defer mutex.Unlock()
+		if globalMetric == nil {
+			fmt.Println("Initialize with default prometheus metric")
+			globalMetric = NewTmpPrometheusMetrics()
+		}
+	}
 
 	return globalMetric
 }
 
 func SetMetric(metric Metrics) {
-	rwMutex.Lock()
-	defer rwMutex.Unlock()
+	mutex.Lock()
+	defer mutex.Unlock()
 
 	globalMetric = metric
 }
@@ -75,5 +82,7 @@ func MetricFactory(opts ...Option) (Metrics, error) {
 		return nil, err
 	}
 
-	return metrics, nil
+	SetMetric(metrics)
+
+	return GetMetric(), nil
 }
