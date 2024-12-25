@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net"
 
@@ -14,7 +15,7 @@ import (
 	"github.com/minhthong582000/soa-404/internal/app/random"
 	"github.com/minhthong582000/soa-404/pkg/config"
 	"github.com/minhthong582000/soa-404/pkg/log"
-	metric "github.com/minhthong582000/soa-404/pkg/metrics"
+	"github.com/minhthong582000/soa-404/pkg/metric"
 	"github.com/minhthong582000/soa-404/pkg/middleware"
 	"github.com/minhthong582000/soa-404/pkg/tracing"
 )
@@ -43,7 +44,7 @@ func (s Server) Run(stopCh <-chan struct{}) error {
 	logger := log.Init(&s.config.Logs)
 
 	// Metrics
-	metrics, err := metric.CreateMetrics(s.config.Metrics.BindAddr, s.config.Server.Name)
+	metrics, err := metric.MetricFactory(metric.WithProvider(metric.Prometheus))
 	if err != nil {
 		logger.Errorf("CreateMetrics Error: %s", err)
 	}
@@ -90,6 +91,7 @@ func (s Server) Run(stopCh <-chan struct{}) error {
 		logger.Infof("Shutting down gRPC server...")
 		grpcServer.GracefulStop()
 		close(errCh)
+		logger.Info("Bye!")
 	}()
 
 	// Run gRPC server
@@ -98,6 +100,11 @@ func (s Server) Run(stopCh <-chan struct{}) error {
 		if err := grpcServer.Serve(lis); err != nil {
 			errCh <- err
 		}
+	}()
+
+	// Run metrics server
+	go func() {
+		metrics.RunHTTPMetricsServer(context.Background(), s.config.Metrics.BindAddr)
 	}()
 
 	// Wait for shutdown signal

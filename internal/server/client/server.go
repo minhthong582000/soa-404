@@ -11,6 +11,7 @@ import (
 	"github.com/minhthong582000/soa-404/internal/app/client"
 	"github.com/minhthong582000/soa-404/pkg/config"
 	"github.com/minhthong582000/soa-404/pkg/log"
+	"github.com/minhthong582000/soa-404/pkg/metric"
 	http_middleware "github.com/minhthong582000/soa-404/pkg/middleware"
 	"github.com/minhthong582000/soa-404/pkg/tracing"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -49,6 +50,12 @@ func (s Server) Run(stopCh <-chan struct{}) error {
 	if err != nil {
 		logger.Errorf("TracerFactory Error: %s", err)
 		return err
+	}
+
+	// Metrics
+	metrics, err := metric.MetricFactory(metric.WithProvider(metric.Prometheus))
+	if err != nil {
+		logger.Errorf("CreateMetrics Error: %s", err)
 	}
 
 	kacp := keepalive.ClientParameters{
@@ -113,12 +120,19 @@ func (s Server) Run(stopCh <-chan struct{}) error {
 	defer func() {
 		logger.Info("Shutting down HTTP server...")
 		close(errCh)
+		logger.Info("Bye!")
 	}()
 
+	// Run HTTP server
 	go func() {
 		if err := router.Start(s.config.Client.BindAddr); err != nil {
 			errCh <- err
 		}
+	}()
+
+	// Run metrics server
+	go func() {
+		metrics.RunHTTPMetricsServer(context.Background(), s.config.Metrics.BindAddr)
 	}()
 
 	select {

@@ -10,16 +10,16 @@ import (
 
 	"github.com/minhthong582000/soa-404/pkg/grpc_errors"
 	"github.com/minhthong582000/soa-404/pkg/log"
-	"github.com/minhthong582000/soa-404/pkg/metrics"
+	"github.com/minhthong582000/soa-404/pkg/metric"
 )
 
 // Interceptor
 type Interceptor struct {
-	metr metrics.Metrics
+	metr metric.Metrics
 }
 
 // InterceptorManager constructor
-func NewInterceptor(metr metrics.Metrics) *Interceptor {
+func NewInterceptor(metr metric.Metrics) *Interceptor {
 	return &Interceptor{metr: metr}
 }
 
@@ -40,14 +40,14 @@ func (im *Interceptor) Logger(ctx context.Context, req interface{}, info *grpc.U
 }
 
 func (im *Interceptor) Metrics(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	start := time.Now()
+	_ = time.Now()
 	resp, err := handler(ctx, req)
-	var status = http.StatusOK
+	var _ = http.StatusOK
 	if err != nil {
-		status = grpc_errors.MapGRPCErrCodeToHttpStatus(grpc_errors.ParseGRPCErrStatusCode(err))
+		_ = grpc_errors.MapGRPCErrCodeToHttpStatus(grpc_errors.ParseGRPCErrStatusCode(err))
 	}
-	im.metr.ObserveResponseTime(status, info.FullMethod, info.FullMethod, time.Since(start).Seconds())
-	im.metr.IncHits(status, info.FullMethod, info.FullMethod)
+	// im.metr.ObserveResponseTime(status, info.FullMethod, info.FullMethod, time.Since(start).Seconds())
+	// im.metr.IncHits(status, info.FullMethod, info.FullMethod)
 
 	return resp, err
 }
