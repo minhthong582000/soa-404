@@ -7,6 +7,16 @@ const (
 	Path   string = "path"
 )
 
+// GrpcType is the type of RPC call.
+type grpcType string
+
+const (
+	Unary        grpcType = "unary"
+	ClientStream grpcType = "client_stream"
+	ServerStream grpcType = "server_stream"
+	BidiStream   grpcType = "bidi_stream"
+)
+
 // Size
 const (
 	_           = iota // ignore first value by assigning to blank identifier
@@ -27,8 +37,8 @@ var Http_request_duration_seconds *Metric = &Metric{
 	Subsystem:   HTTP,
 	Description: "Histogram metric that measures the duration of the request in seconds.",
 	Type:        Histogram,
-	Labels:      []string{Path, Status},
-	Buckets:     []float64{0.01, 0.05, 0.1, 0.5, 1, 2, 5},
+	Labels:      []string{Path},
+	Buckets:     []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10},
 }
 
 // http_request_total is a counter metric that measures the total number of requests.
@@ -45,7 +55,7 @@ var Http_request_inflight *Metric = &Metric{
 	Name:        "request_inflight",
 	Description: "Gauge metric that measures the number of requests currently in progress.",
 	Subsystem:   HTTP,
-	Type:        Counter,
+	Type:        Gauge,
 	Labels:      []string{Path},
 }
 
@@ -73,30 +83,48 @@ var Http_request_size_bytes *Metric = &Metric{
 // List of default GRPC metrics
 //
 
-// grpc_request_duration_seconds is a histogram metric that measures the duration of the request in seconds.
-var Grpc_request_duration_seconds *Metric = &Metric{
-	Name:        "request_duration_seconds",
+// grpc_server_handling_seconds is a histogram metric that measures the duration of the request in seconds.
+var Grpc_server_handling_seconds *Metric = &Metric{
+	Name:        "server_handling_seconds",
 	Description: "Histogram metric that measures the duration of the request in seconds.",
 	Subsystem:   GRPC,
 	Type:        Histogram,
-	Labels:      []string{Method, Status},
-	Buckets:     []float64{0.01, 0.05, 0.1, 0.5, 1, 2, 5},
+	Labels:      []string{"grpc_type", "grpc_service", "grpc_method"},
+	Buckets:     []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10},
 }
 
-// grpc_request_total is a counter metric that measures the total number of requests.
-var Grpc_request_total *Metric = &Metric{
-	Name:        "request_total",
-	Description: "Counter metric that measures the total number of requests.",
+// grpc_server_handled_total is a counter metric that measures the total number of requests.
+var Grpc_server_handled_total *Metric = &Metric{
+	Name:        "server_handled_total",
+	Description: "Total number of RPCs completed on the server, regardless of success or failure.",
 	Subsystem:   GRPC,
 	Type:        Counter,
-	Labels:      []string{Method, Status},
+	Labels:      []string{"grpc_type", "grpc_service", "grpc_method", Status},
 }
 
-// grpc_request_inflight is a gauge metric that measures the number of requests currently in progress.
-var Grpc_request_inflight *Metric = &Metric{
-	Name:        "request_inflight",
-	Description: "Gauge metric that measures the number of requests currently in progress.",
+// grpc_server_started_total is a gauge metric that measures the number of requests currently in progress.
+var Grpc_server_started_total *Metric = &Metric{
+	Name:        "server_started_total",
+	Description: "Total number of RPCs started on the server.",
 	Subsystem:   GRPC,
-	Type:        Gauge,
-	Labels:      []string{Method},
+	Type:        Counter,
+	Labels:      []string{"grpc_type", "grpc_service", "grpc_method"},
+}
+
+// grpc_server_msg_received_total is a counter metric that measures the total number of RPC stream messages received on the server.
+var Grpc_server_msg_received_total *Metric = &Metric{
+	Name:        "server_msg_received_total",
+	Description: "Total number of RPC stream messages received on the server.",
+	Subsystem:   GRPC,
+	Type:        Counter,
+	Labels:      []string{"grpc_type", "grpc_service", "grpc_method"},
+}
+
+// grpc_server_msg_sent_total is a counter metric that measures the total number of gRPC stream messages sent by the server.
+var Grpc_server_msg_sent_total *Metric = &Metric{
+	Name:        "server_msg_sent_total",
+	Description: "Total number of gRPC stream messages sent by the server.",
+	Subsystem:   GRPC,
+	Type:        Counter,
+	Labels:      []string{"grpc_type", "grpc_service", "grpc_method"},
 }

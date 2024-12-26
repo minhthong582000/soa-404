@@ -54,8 +54,7 @@ func (s Server) Run(stopCh <-chan struct{}) error {
 		tracing.WithServiceName(s.config.Client.Name),
 	)
 	if err != nil {
-		logger.Errorf("TracerFactory Error: %s", err)
-		return err
+		return fmt.Errorf("error initializing tracer: %v", err)
 	}
 
 	// Metrics
@@ -70,7 +69,7 @@ func (s Server) Run(stopCh <-chan struct{}) error {
 		),
 	)
 	if err != nil {
-		logger.Errorf("CreateMetrics Error: %s", err)
+		return fmt.Errorf("error initializing metrics: %v", err)
 	}
 
 	kacp := keepalive.ClientParameters{
@@ -85,8 +84,7 @@ func (s Server) Run(stopCh <-chan struct{}) error {
 		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 	)
 	if err != nil {
-		logger.Errorf("fail to dial: %v", err)
-		return err
+		return fmt.Errorf("unable to connect to \"%s\": %v", s.config.Client.ServerAddr, err)
 	}
 	defer conn.Close()
 

@@ -3,6 +3,7 @@ package metric
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/labstack/echo/v4"
 	"github.com/prometheus/client_golang/prometheus"
@@ -29,14 +30,20 @@ func NewPrometheusMetrics(config *MetricsConfig) (*prometheusMetrics, error) {
 	for _, m := range config.Metrics {
 		_, ok := p.metricsMap[m.Name]
 		if ok {
-			return nil, errors.New("metrics with the same name already registered")
+			return nil, fmt.Errorf("duplicate metric name: \"%s\"", m.Name)
 		}
 
 		var prometheusMetric prometheus.Collector
 
 		switch m.Type {
-		case Counter, Gauge:
+		case Counter:
 			prometheusMetric = promauto.NewCounterVec(prometheus.CounterOpts{
+				Name:      m.Name,
+				Help:      m.Description,
+				Subsystem: string(m.Subsystem),
+			}, m.Labels)
+		case Gauge:
+			prometheusMetric = promauto.NewGaugeVec(prometheus.GaugeOpts{
 				Name:      m.Name,
 				Help:      m.Description,
 				Subsystem: string(m.Subsystem),
@@ -114,18 +121,37 @@ func (p *prometheusMetrics) Counter(metric *Metric, value float64, labelValues .
 	return nil
 }
 
-func (p *prometheusMetrics) Gauge(metric *Metric, value float64, labelValues ...string) error {
+func (p *prometheusMetrics) gauge(metric *Metric, labelValues ...string) (prometheus.Gauge, error) {
 	collector, ok := p.metricsMap[metric.Name]
 	if !ok {
-		return errors.New("metric does not exist")
+		return nil, errors.New("metric does not exist")
 	}
 
 	// Check if the metric is a gauge
 	gaugeVec, ok := collector.(*prometheus.GaugeVec)
 	if !ok {
-		return errors.New("metric is not a gauge")
+		return nil, errors.New("metric is not a gauge")
 	}
 	gauge, err := gaugeVec.GetMetricWithLabelValues(labelValues...)
+	if err != nil {
+		return nil, err
+	}
+
+	return gauge, nil
+}
+
+func (p *prometheusMetrics) AddGauge(metric *Metric, value float64, labelValues ...string) error {
+	gauge, err := p.gauge(metric, labelValues...)
+	if err != nil {
+		return err
+	}
+	gauge.Add(value)
+
+	return nil
+}
+
+func (p *prometheusMetrics) SetGauge(metric *Metric, value float64, labelValues ...string) error {
+	gauge, err := p.gauge(metric, labelValues...)
 	if err != nil {
 		return err
 	}

@@ -7,7 +7,6 @@ import (
 
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
-	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 
@@ -51,19 +50,15 @@ func (s Server) Run(stopCh <-chan struct{}) error {
 	metrics, err := metric.MetricFactory(
 		metric.WithProvider(metric.Prometheus),
 		metric.WithMetrics(
-			metric.Grpc_request_duration_seconds,
-			metric.Grpc_request_total,
-			metric.Grpc_request_inflight,
+			metric.Grpc_server_handled_total,
+			metric.Grpc_server_msg_received_total,
+			metric.Grpc_server_msg_sent_total,
+			metric.Grpc_server_handling_seconds,
 		),
 	)
 	if err != nil {
-		logger.Errorf("CreateMetrics Error: %s", err)
+		return fmt.Errorf("error initializing metrics: %v", err)
 	}
-	logger.Infof(
-		"Metrics available URL: %s, ServiceName: %s",
-		s.config.Metrics.BindAddr,
-		s.config.Server.Name,
-	)
 
 	// Tracing
 	_, err = tracing.TracerFactory(
@@ -74,7 +69,7 @@ func (s Server) Run(stopCh <-chan struct{}) error {
 		tracing.WithServiceName(s.config.Server.Name),
 	)
 	if err != nil {
-		logger.Errorf("TracerFactory Error: %s", err)
+		return fmt.Errorf("error initializing tracer: %v", err)
 	}
 
 	// Register logs & metrics & trace interceptor
@@ -83,7 +78,6 @@ func (s Server) Run(stopCh <-chan struct{}) error {
 		grpc.ChainUnaryInterceptor(
 			in.Logger,
 			in.Metrics,
-			grpc_prometheus.UnaryServerInterceptor,
 			grpc_ctxtags.UnaryServerInterceptor(),
 			recovery.UnaryServerInterceptor(),
 		),
@@ -115,6 +109,11 @@ func (s Server) Run(stopCh <-chan struct{}) error {
 
 	// Run metrics server
 	go func() {
+		logger.Infof(
+			"Metrics available URL: %s, ServiceName: %s",
+			s.config.Metrics.BindAddr,
+			s.config.Server.Name,
+		)
 		metrics.RunHTTPMetricsServer(context.Background(), s.config.Metrics.BindAddr)
 	}()
 

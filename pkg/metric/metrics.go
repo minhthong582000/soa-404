@@ -26,7 +26,8 @@ type Metric struct {
 type Metrics interface {
 	RunHTTPMetricsServer(ctx context.Context, address string)
 	Counter(metric *Metric, value float64, labelValues ...string) error
-	Gauge(metric *Metric, value float64, labelValues ...string) error
+	AddGauge(metric *Metric, value float64, labelValues ...string) error
+	SetGauge(metric *Metric, value float64, labelValues ...string) error
 	Histogram(metric *Metric, value float64, labelValues ...string) error
 	IsMetricExist(name string) bool
 }

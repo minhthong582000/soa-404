@@ -31,6 +31,7 @@ services:
       - ../../config/config-docker.yaml:/usr/app/config/config.yaml
     ports:
       - 8070:8070
+      - 8072:8071
     networks:
       - service
     logging:

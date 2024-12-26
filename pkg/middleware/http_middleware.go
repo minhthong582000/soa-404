@@ -46,17 +46,24 @@ func (m *Middleware) Metrics() echo.MiddlewareFunc {
 			startTime := time.Now()
 			path := c.Path() // contains route path ala `/users/:id`
 
+			// Post Message Received
 			if metr.IsMetricExist(metric.Http_request_inflight.Name) {
-				metr.Counter(metric.Grpc_request_inflight, 1, path)
+				metr.AddGauge(metric.Http_request_inflight, 1, path)
 				defer func() {
-					metr.Counter(metric.Grpc_request_inflight, -1, path)
+					metr.AddGauge(metric.Http_request_inflight, -1, path)
 				}()
 			}
-
 			reqSz := computeApproximateRequestSize(c.Request())
+			if metr.IsMetricExist(metric.Http_request_size_bytes.Name) {
+				metr.Histogram(metric.Http_request_size_bytes, float64(reqSz), path)
+			}
 
+			// Call
 			err := next(c)
 
+			// Post message sent
+
+			// Post call
 			status := c.Response().Status
 			if err != nil {
 				var httpError *echo.HTTPError
@@ -68,19 +75,15 @@ func (m *Middleware) Metrics() echo.MiddlewareFunc {
 				}
 			}
 			statusStr := strconv.Itoa(status)
-			resSz := c.Response().Size
-
 			if metr.IsMetricExist(metric.Http_request_total.Name) {
 				metr.Counter(metric.Http_request_total, 1, path, statusStr)
 			}
-			if metr.IsMetricExist(metric.Http_request_duration_seconds.Name) {
-				metr.Histogram(metric.Http_request_duration_seconds, time.Since(startTime).Seconds(), path, statusStr)
-			}
-			if metr.IsMetricExist(metric.Http_request_size_bytes.Name) {
-				metr.Histogram(metric.Http_request_size_bytes, float64(reqSz), path)
-			}
+			resSz := c.Response().Size
 			if metr.IsMetricExist(metric.Http_response_size_bytes.Name) {
 				metr.Histogram(metric.Http_response_size_bytes, float64(resSz), path)
+			}
+			if metr.IsMetricExist(metric.Http_request_duration_seconds.Name) {
+				metr.Histogram(metric.Http_request_duration_seconds, time.Since(startTime).Seconds(), path)
 			}
 
 			return nil
