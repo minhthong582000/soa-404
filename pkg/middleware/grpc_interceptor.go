@@ -31,9 +31,19 @@ func (im *Interceptor) Logger(ctx context.Context, req interface{}, info *grpc.U
 	md, _ := metadata.FromIncomingContext(ctx)
 	reply, err := handler(ctx, req)
 	if err != nil {
-		logger.With(ctx).Errorf("Method: %s, Time: %v, Metadata: %v, Err: %v", info.FullMethod, time.Since(start), md, err)
+		logger.With(
+			ctx,
+			"Method", info.FullMethod,
+			"Time", time.Since(start),
+			"Metadata", md,
+		).Error(err)
 	} else {
-		logger.With(ctx).Infof("Method: %s, Time: %v, Metadata: %v", info.FullMethod, time.Since(start), md)
+		logger.With(
+			ctx,
+			"Method", info.FullMethod,
+			"Time", time.Since(start),
+			"Metadata", md,
+		).Infof("Success")
 	}
 
 	return reply, err

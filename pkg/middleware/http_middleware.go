@@ -21,7 +21,12 @@ func (m *Middleware) RequestLogger() echo.MiddlewareFunc {
 		LogStatus: true,
 		LogMethod: true,
 		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
-			logger.Infof("%s %s %d", v.Method, v.URI, v.Status)
+			logger.With(
+				c.Request().Context(),
+				"uri", v.URI,
+				"status", v.Status,
+				"method", v.Method,
+			).Infof("received request")
 
 			return nil
 		},
