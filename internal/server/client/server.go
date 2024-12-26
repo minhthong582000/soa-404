@@ -43,7 +43,7 @@ func (s Server) Run(stopCh <-chan struct{}) error {
 	if err != nil {
 		return fmt.Errorf("error initializing logger: %v", err)
 	}
-	httpMiddleware := http_middleware.NewMiddleware(logger)
+	httpMiddleware := http_middleware.NewMiddleware()
 
 	// Tracing
 	_, err = tracing.TracerFactory(

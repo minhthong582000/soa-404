@@ -3,30 +3,25 @@ package middleware
 import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"go.uber.org/zap"
 
 	"github.com/minhthong582000/soa-404/pkg/log"
 )
 
 type Middleware struct {
-	logger log.Logger
 }
 
-func NewMiddleware(logger log.Logger) *Middleware {
-	return &Middleware{
-		logger: logger,
-	}
+func NewMiddleware() *Middleware {
+	return &Middleware{}
 }
 
 func (m *Middleware) RequestLogger() echo.MiddlewareFunc {
+	logger := log.GetLogger()
 	return middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 		LogURI:    true,
 		LogStatus: true,
+		LogMethod: true,
 		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
-			m.logger.Info("request",
-				zap.String("URI", v.URI),
-				zap.Int("status", v.Status),
-			)
+			logger.Infof("%s %s %d", v.Method, v.URI, v.Status)
 
 			return nil
 		},
