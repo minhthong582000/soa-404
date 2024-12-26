@@ -1,0 +1,18 @@
+version: v2
+managed:
+  enabled: true
+  disable:
+    - file_option: go_package
+      module: buf.build/bufbuild/protovalidate
+  override:
+    - file_option: go_package_prefix
+      value: github.com/minhthong582000/soa-404/api/v1/pb/random
+plugins:
+  - remote: buf.build/grpc/go
+    out: .
+    opt:
+      - paths=source_relative
+  - remote: buf.build/protocolbuffers/go
+    out: .
+    opt:
+      - paths=source_relative

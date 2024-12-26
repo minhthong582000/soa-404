@@ -1,7 +1,8 @@
 syntax = "proto3";
+
 package random;
 
-option go_package = "github.com/minhthong582000/SOA-404/api/v1/pb/random/random.proto;pb";
+import "buf/validate/validate.proto";
 
 // RandomService is an interface exported by the server.
 service RandomService {
@@ -9,7 +10,7 @@ service RandomService {
 }
 
 message GetRandNumberRequest {
-  int64 SeedNum = 1;
+  int64 SeedNum = 1 [(buf.validate.field).int64.gte = 3];
 }
 
 message GetRandNumberReply {

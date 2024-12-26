@@ -1,5 +1,9 @@
 BINARY=service
 
+proto:
+	buf dep update  
+	buf generate
+
 test: 
 	go test -v -cover -covermode=atomic ./...
 
@@ -32,4 +36,4 @@ lint-prepare:
 lint:
 	./bin/golangci-lint run ./...
 
-.PHONY: clean install unittest build docker run stop lint-prepare lint
+.PHONY: clean install unittest build docker run stop lint-prepare lint proto
