@@ -3,8 +3,9 @@ package middleware
 import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/minhthong582000/soa-404/pkg/log"
 	"go.uber.org/zap"
+
+	"github.com/minhthong582000/soa-404/pkg/log"
 )
 
 type Middleware struct {

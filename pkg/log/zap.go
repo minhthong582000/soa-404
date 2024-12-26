@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/minhthong582000/soa-404/pkg/config"
-	grpcHeader "github.com/minhthong582000/soa-404/pkg/grpc"
-	"github.com/minhthong582000/soa-404/pkg/tracing"
-
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
 	"google.golang.org/grpc/metadata"
 	"gopkg.in/natefinch/lumberjack.v2"
+
+	logger_config "github.com/minhthong582000/soa-404/pkg/config"
+	grpcHeader "github.com/minhthong582000/soa-404/pkg/grpc"
+	"github.com/minhthong582000/soa-404/pkg/tracing"
 )
 
 var loggerLevelMap = map[string]zapcore.Level{
@@ -28,11 +28,11 @@ var loggerLevelMap = map[string]zapcore.Level{
 
 type logger struct {
 	*zap.SugaredLogger
-	config *config.Logs
+	config *logger_config.Logs
 }
 
 // New creates a new logger using the default configuration.
-func New(config *config.Logs) *logger {
+func NewZapLogger(config *logger_config.Logs) *logger {
 	// Get the log level from the config
 	level, exist := loggerLevelMap[config.Level]
 	if !exist {
@@ -110,7 +110,7 @@ func NewTmpLogger() Logger {
 
 	return &logger{
 		l.Sugar(),
-		&config.Logs{},
+		&logger_config.Logs{},
 	}
 }
 
@@ -121,7 +121,7 @@ func NewForTest() (Logger, *observer.ObservedLogs) {
 
 	return &logger{
 		l.Sugar(),
-		&config.Logs{},
+		&logger_config.Logs{},
 	}, recorded
 }
 

@@ -41,7 +41,11 @@ func (s Server) Run(stopCh <-chan struct{}) error {
 	}
 
 	// Logger
-	logger := log.Init(&s.config.Logs)
+	s.config.Logs.Provider = config.ZapLog
+	logger, err := log.LogFactory(&s.config.Logs)
+	if err != nil {
+		return fmt.Errorf("error initializing logger: %v", err)
+	}
 
 	// Metrics
 	metrics, err := metric.MetricFactory(metric.WithProvider(metric.Prometheus))

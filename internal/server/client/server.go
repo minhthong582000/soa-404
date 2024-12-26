@@ -2,11 +2,18 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/metadata"
+
 	pb "github.com/minhthong582000/soa-404/api/v1/pb/random"
 	"github.com/minhthong582000/soa-404/internal/app/client"
 	"github.com/minhthong582000/soa-404/pkg/config"
@@ -14,11 +21,6 @@ import (
 	"github.com/minhthong582000/soa-404/pkg/metric"
 	http_middleware "github.com/minhthong582000/soa-404/pkg/middleware"
 	"github.com/minhthong582000/soa-404/pkg/tracing"
-	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/keepalive"
-	"google.golang.org/grpc/metadata"
 )
 
 // Server to serve the service.
@@ -36,11 +38,15 @@ func New(config *config.Config) *Server {
 // HttpClient runs the client.
 func (s Server) Run(stopCh <-chan struct{}) error {
 	// Logs
-	logger := log.Init(&s.config.Logs)
+	s.config.Logs.Provider = config.ZapLog
+	logger, err := log.LogFactory(&s.config.Logs)
+	if err != nil {
+		return fmt.Errorf("error initializing logger: %v", err)
+	}
 	httpMiddleware := http_middleware.NewMiddleware(logger)
 
 	// Tracing
-	_, err := tracing.TracerFactory(
+	_, err = tracing.TracerFactory(
 		tracing.WithProvider(tracing.OTLP),
 		tracing.WithCollectorURL(s.config.Tracing.OLTPTracing.CollectorAddr),
 		tracing.WithEnabled(s.config.Tracing.OLTPTracing.Enabled),

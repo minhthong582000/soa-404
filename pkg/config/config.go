@@ -26,7 +26,14 @@ type Logs struct {
 	Level            string            `mapstructure:"level" validate:"required,oneof=debug info warn error dpanic panic fatal"`
 	Path             string            `mapstructure:"path"`
 	AdditionalFields []AdditionalField `mapstructure:"additional_fields" validate:"dive"`
+	Provider         LogProvider       `mapstructure:"provider"`
 }
+
+type LogProvider string
+
+const (
+	ZapLog LogProvider = "zap"
+)
 
 type AdditionalField struct {
 	FieldName string `mapstructure:"field_name" validate:"required"`

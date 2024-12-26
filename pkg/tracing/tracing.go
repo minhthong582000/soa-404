@@ -3,12 +3,12 @@ package tracing
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 )
 
 // Tracer is the interface for the tracer
 type Tracer interface {
-	InitTracer() error
 	StartSpan(ctx context.Context, name string) context.Context
 	EndSpan(ctx context.Context)
 	GetTraceID(ctx context.Context) string
@@ -17,19 +17,25 @@ type Tracer interface {
 
 var (
 	globalTracer Tracer
-	rwMutex      sync.RWMutex
+	mutex        sync.Mutex
 )
 
 func GetTracer() Tracer {
-	rwMutex.RLock()
-	defer rwMutex.RUnlock()
+	if globalTracer == nil {
+		mutex.Lock()
+		defer mutex.Unlock()
+		if globalTracer == nil {
+			fmt.Println("Initialize with default empty tracer")
+			globalTracer = NewTmpOLTPTracer()
+		}
+	}
 
 	return globalTracer
 }
 
 func SetTracer(tracer Tracer) {
-	rwMutex.Lock()
-	defer rwMutex.Unlock()
+	mutex.Lock()
+	defer mutex.Unlock()
 
 	globalTracer = tracer
 }
@@ -49,21 +55,22 @@ func TracerFactory(opts ...Option) (Tracer, error) {
 		opt(config)
 	}
 
-	var tracer Tracer
+	var (
+		tracer Tracer
+		err    error
+	)
 	switch config.Provider {
 	case OTLP:
-		tracer = NewOTLPTracer(config)
+		tracer, err = NewOTLPTracer(config)
+		if err != nil {
+			return nil, err
+		}
 	case Jaeger:
 		return nil, errors.New("jaeger not implemented yet")
 	case Datadog:
 		return nil, errors.New("datadog not implemented yet")
 	default:
 		return nil, errors.New("invalid tracer type")
-	}
-
-	err := tracer.InitTracer()
-	if err != nil {
-		return nil, err
 	}
 
 	SetTracer(tracer)

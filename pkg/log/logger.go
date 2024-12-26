@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/minhthong582000/soa-404/pkg/config"
+	logger_config "github.com/minhthong582000/soa-404/pkg/config"
 )
 
 var (
@@ -33,12 +33,6 @@ func SetLogger(tracer Logger) {
 	globalLogger = tracer
 }
 
-type Provider string
-
-const (
-	Zap Provider = "Zap"
-)
-
 // Logger is a logger that supports log levels, context and structured logging.
 type Logger interface {
 	// With returns a logger based on the root logger and decorates it with the given context and arguments.
@@ -51,9 +45,18 @@ type Logger interface {
 	Errorf(format string, args ...interface{})
 }
 
-func Init(config *config.Logs) Logger {
-	logger := New(config)
+func LogFactory(config *logger_config.Logs) (Logger, error) {
+	var (
+		logger Logger
+	)
+	switch config.Provider {
+	case logger_config.ZapLog:
+		logger = NewZapLogger(config)
+	default:
+		return nil, fmt.Errorf("unsupported logger provider: %s", config.Provider)
+	}
 
 	SetLogger(logger)
-	return GetLogger()
+
+	return GetLogger(), nil
 }

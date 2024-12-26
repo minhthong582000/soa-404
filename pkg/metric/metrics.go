@@ -15,7 +15,6 @@ type Metric struct {
 }
 
 type Metrics interface {
-	InitMetric(metric ...*Metric) error
 	RunHTTPMetricsServer(ctx context.Context, address string)
 	Counter(metric *Metric, value float64, labelValues ...string) error
 	Gauge(metric *Metric, value float64, labelValues ...string) error
@@ -68,18 +67,20 @@ func MetricFactory(opts ...Option) (Metrics, error) {
 		opt(config)
 	}
 
-	var metrics Metrics
+	var (
+		metrics Metrics
+		err     error
+	)
 	switch config.Provider {
 	case Prometheus:
-		metrics = NewPrometheusMetrics()
+		metrics, err = NewPrometheusMetrics(config)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Prometheus metrics: %w", err)
+		}
 	case Datadog:
 		return nil, errors.New("datadog not implemented yet")
 	default:
 		return nil, errors.New("provider not implemented yet")
-	}
-
-	if err := metrics.InitMetric(config.Metrics...); err != nil {
-		return nil, err
 	}
 
 	SetMetric(metrics)

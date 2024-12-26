@@ -20,17 +20,16 @@ type OTLPTracer struct {
 	config *TracerConfig
 }
 
-func NewOTLPTracer(config *TracerConfig) *OTLPTracer {
-	return &OTLPTracer{
-		config: config,
-	}
-}
-
-func (t *OTLPTracer) InitTracer() error {
+func NewOTLPTracer(config *TracerConfig) (*OTLPTracer, error) {
 	ctx := context.Background()
 
+	t := &OTLPTracer{
+		tracer: nil,
+		config: config,
+	}
+
 	if !t.config.Enabled {
-		return nil
+		return nil, nil
 	}
 
 	// Setup GRPC connection to collector
@@ -46,7 +45,7 @@ func (t *OTLPTracer) InitTracer() error {
 		),
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	resources, err := resource.New(
@@ -57,7 +56,7 @@ func (t *OTLPTracer) InitTracer() error {
 		),
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	provider := sdktrace.NewTracerProvider(
@@ -70,7 +69,16 @@ func (t *OTLPTracer) InitTracer() error {
 
 	t.tracer = otel.Tracer(t.config.ServiceName)
 
-	return nil
+	return t, nil
+}
+
+func NewTmpOLTPTracer() *OTLPTracer {
+	return &OTLPTracer{
+		tracer: nil,
+		config: &TracerConfig{
+			Enabled: false,
+		},
+	}
 }
 
 func (t *OTLPTracer) StartSpan(ctx context.Context, name string) context.Context {
