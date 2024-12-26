@@ -7,11 +7,20 @@ import (
 	"sync"
 )
 
+type Subsystem string
+
+const (
+	HTTP Subsystem = "http"
+	GRPC Subsystem = "grpc"
+)
+
 type Metric struct {
-	Name    string
-	Type    MetricType
-	Labels  []string
-	Buckets []float64
+	Name        string
+	Type        MetricType
+	Subsystem   Subsystem
+	Description string
+	Labels      []string
+	Buckets     []float64
 }
 
 type Metrics interface {
@@ -19,6 +28,7 @@ type Metrics interface {
 	Counter(metric *Metric, value float64, labelValues ...string) error
 	Gauge(metric *Metric, value float64, labelValues ...string) error
 	Histogram(metric *Metric, value float64, labelValues ...string) error
+	IsMetricExist(name string) bool
 }
 
 var (

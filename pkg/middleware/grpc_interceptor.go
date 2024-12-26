@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"time"
 
 	"google.golang.org/grpc"
@@ -15,12 +16,11 @@ import (
 
 // Interceptor
 type Interceptor struct {
-	metr metric.Metrics
 }
 
 // InterceptorManager constructor
-func NewInterceptor(metr metric.Metrics) *Interceptor {
-	return &Interceptor{metr: metr}
+func NewInterceptor() *Interceptor {
+	return &Interceptor{}
 }
 
 // Logger Interceptor
@@ -48,16 +48,31 @@ func (im *Interceptor) Logger(ctx context.Context, req interface{}, info *grpc.U
 
 	return reply, err
 }
-
 func (im *Interceptor) Metrics(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	_ = time.Now()
-	resp, err := handler(ctx, req)
-	var _ = http.StatusOK
-	if err != nil {
-		_ = grpc_errors.MapGRPCErrCodeToHttpStatus(grpc_errors.ParseGRPCErrStatusCode(err))
+	metr := metric.GetMetric()
+
+	startTime := time.Now()
+
+	if metr.IsMetricExist(metric.Grpc_request_inflight.Name) {
+		metr.Counter(metric.Grpc_request_inflight, 1, info.FullMethod)
+		defer func() {
+			metr.Counter(metric.Grpc_request_inflight, -1, info.FullMethod)
+		}()
 	}
-	// im.metr.ObserveResponseTime(status, info.FullMethod, info.FullMethod, time.Since(start).Seconds())
-	// im.metr.IncHits(status, info.FullMethod, info.FullMethod)
+
+	resp, err := handler(ctx, req)
+	status := http.StatusOK
+	if err != nil {
+		status = grpc_errors.MapGRPCErrCodeToHttpStatus(grpc_errors.ParseGRPCErrStatusCode(err))
+	}
+	statusStr := strconv.Itoa(status)
+
+	if metr.IsMetricExist(metric.Grpc_request_total.Name) {
+		metr.Counter(metric.Grpc_request_total, 1, info.FullMethod, statusStr)
+	}
+	if metr.IsMetricExist(metric.Grpc_request_duration_seconds.Name) {
+		metr.Histogram(metric.Grpc_request_duration_seconds, time.Since(startTime).Seconds(), info.FullMethod, statusStr)
+	}
 
 	return resp, err
 }

@@ -59,23 +59,15 @@ func (s Server) Run(stopCh <-chan struct{}) error {
 	}
 
 	// Metrics
-	// client_request_duration_seconds := &metric.Metric{
-	// 	Name:    "client_request_duration_seconds",
-	// 	Type:    metric.Histogram,
-	// 	Labels:  []string{"method", "status"},
-	// 	Buckets: []float64{0.1, 0.3, 1.5, 10.5},
-	// }
-	// client_request_count := &metric.Metric{
-	// 	Name:   "client_request_count",
-	// 	Type:   metric.Counter,
-	// 	Labels: []string{"method", "status"},
-	// }
 	metrics, err := metric.MetricFactory(
 		metric.WithProvider(metric.Prometheus),
-		// metric.WithMetrics(
-		// 	client_request_duration_seconds,
-		// 	client_request_count,
-		// ),
+		metric.WithMetrics(
+			metric.Http_request_inflight,
+			metric.Http_request_total,
+			metric.Http_request_duration_seconds,
+			metric.Http_response_size_bytes,
+			metric.Http_request_size_bytes,
+		),
 	)
 	if err != nil {
 		logger.Errorf("CreateMetrics Error: %s", err)
@@ -103,7 +95,8 @@ func (s Server) Run(stopCh <-chan struct{}) error {
 
 	router := echo.New()
 	router.Use(middleware.RequestID())
-	router.Use(httpMiddleware.RequestLogger())
+	router.Use(httpMiddleware.Logger())
+	router.Use(httpMiddleware.Metrics())
 	router.GET("/healthz", func(c echo.Context) error {
 		return c.String(200, "OK")
 	})

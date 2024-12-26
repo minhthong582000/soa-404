@@ -48,7 +48,14 @@ func (s Server) Run(stopCh <-chan struct{}) error {
 	}
 
 	// Metrics
-	metrics, err := metric.MetricFactory(metric.WithProvider(metric.Prometheus))
+	metrics, err := metric.MetricFactory(
+		metric.WithProvider(metric.Prometheus),
+		metric.WithMetrics(
+			metric.Grpc_request_duration_seconds,
+			metric.Grpc_request_total,
+			metric.Grpc_request_inflight,
+		),
+	)
 	if err != nil {
 		logger.Errorf("CreateMetrics Error: %s", err)
 	}
@@ -71,7 +78,7 @@ func (s Server) Run(stopCh <-chan struct{}) error {
 	}
 
 	// Register logs & metrics & trace interceptor
-	in := middleware.NewInterceptor(metrics)
+	in := middleware.NewInterceptor()
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			in.Logger,

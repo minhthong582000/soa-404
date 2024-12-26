@@ -37,15 +37,19 @@ func NewPrometheusMetrics(config *MetricsConfig) (*prometheusMetrics, error) {
 		switch m.Type {
 		case Counter, Gauge:
 			prometheusMetric = promauto.NewCounterVec(prometheus.CounterOpts{
-				Name: m.Name,
+				Name:      m.Name,
+				Help:      m.Description,
+				Subsystem: string(m.Subsystem),
 			}, m.Labels)
 		case Histogram:
 			if len(m.Buckets) == 0 {
 				return nil, errors.New("empty histogram bucket")
 			}
 			prometheusMetric = promauto.NewHistogramVec(prometheus.HistogramOpts{
-				Name:    m.Name,
-				Buckets: m.Buckets,
+				Name:      m.Name,
+				Subsystem: string(m.Subsystem),
+				Help:      m.Description,
+				Buckets:   m.Buckets,
 			}, m.Labels)
 		default:
 			return nil, errors.New("invalid metric type")
@@ -83,6 +87,11 @@ func (p *prometheusMetrics) RunHTTPMetricsServer(ctx context.Context, address st
 	if err := router.Start(address); err != nil {
 		logger.Errorf("Error starting metrics server: %s", err)
 	}
+}
+
+func (p *prometheusMetrics) IsMetricExist(name string) bool {
+	_, ok := p.metricsMap[name]
+	return ok
 }
 
 func (p *prometheusMetrics) Counter(metric *Metric, value float64, labelValues ...string) error {
