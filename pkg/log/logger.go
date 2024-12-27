@@ -10,17 +10,16 @@ import (
 
 var (
 	globalLogger Logger
-	mutex        sync.Mutex
+	mutex        sync.RWMutex
 )
 
 func GetLogger() Logger {
+	mutex.Lock()
+	defer mutex.Unlock()
+
 	if globalLogger == nil {
-		mutex.Lock()
-		defer mutex.Unlock()
-		if globalLogger == nil {
-			fmt.Println("Initialize with default zap logger")
-			globalLogger = NewTmpLogger()
-		}
+		fmt.Println("Initialize with default zap logger")
+		globalLogger = NewTmpLogger()
 	}
 
 	return globalLogger
@@ -31,6 +30,13 @@ func SetLogger(tracer Logger) {
 	defer mutex.Unlock()
 
 	globalLogger = tracer
+}
+
+// ResetGlobalLogger resets the global logger for isolated tests.
+func ResetGlobalLogger() {
+	mutex.Lock()
+	defer mutex.Unlock()
+	globalLogger = nil
 }
 
 // Logger is a logger that supports log levels, context and structured logging.

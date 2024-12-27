@@ -26,13 +26,13 @@ var loggerLevelMap = map[string]zapcore.Level{
 	"fatal":  zapcore.FatalLevel,
 }
 
-type logger struct {
+type zapLogger struct {
 	*zap.SugaredLogger
 	config *logger_config.Logs
 }
 
 // New creates a new logger using the default configuration.
-func NewZapLogger(config *logger_config.Logs) *logger {
+func NewZapLogger(config *logger_config.Logs) *zapLogger {
 	// Get the log level from the config
 	level, exist := loggerLevelMap[config.Level]
 	if !exist {
@@ -71,7 +71,7 @@ func NewZapLogger(config *logger_config.Logs) *logger {
 
 	zap.ReplaceGlobals(l)
 
-	return &logger{
+	return &zapLogger{
 		l.Sugar(),
 		config,
 	}
@@ -100,7 +100,7 @@ func fileWriteSyncer(path string) zapcore.WriteSyncer {
 }
 
 // NewTmpLogger creates a temporary logger if the logger is not yet initialized.
-func NewTmpLogger() Logger {
+func NewTmpLogger() *zapLogger {
 	c := zap.NewProductionConfig()
 	c.DisableStacktrace = true
 	l, err := c.Build()
@@ -108,24 +108,28 @@ func NewTmpLogger() Logger {
 		panic(err)
 	}
 
-	return &logger{
+	return &zapLogger{
 		l.Sugar(),
 		&logger_config.Logs{},
 	}
 }
 
 // NewForTest returns a new logger and the corresponding observed logs which can be used in unit tests to verify log entries.
-func NewForTest() (Logger, *observer.ObservedLogs) {
+func NewForTest(config *logger_config.Logs) (*zapLogger, *observer.ObservedLogs) {
+	if config == nil {
+		config = &logger_config.Logs{}
+	}
+
 	core, recorded := observer.New(zapcore.InfoLevel)
 	l := zap.New(core)
 
-	return &logger{
+	return &zapLogger{
 		l.Sugar(),
-		&logger_config.Logs{},
+		config,
 	}, recorded
 }
 
-func (l *logger) With(ctx context.Context, args ...interface{}) Logger {
+func (l *zapLogger) With(ctx context.Context, args ...interface{}) Logger {
 	if ctx == nil {
 		return l
 	}
@@ -155,7 +159,7 @@ func (l *logger) With(ctx context.Context, args ...interface{}) Logger {
 	}
 
 	if len(args) > 0 {
-		return &logger{l.SugaredLogger.With(args...), l.config}
+		return &zapLogger{l.SugaredLogger.With(args...), l.config}
 	}
 
 	return l
