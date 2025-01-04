@@ -15,7 +15,7 @@ Change the datasources to `Mimir` to access the metrics, `Loki` to access the lo
 <figure>
 <p align="center" width="100%">
   <img src="./docs/images/metrics.png" alt="init_result" style="width:100%">
-  <figcaption><h2 align="center">Explore metrics</h2></figcaption>
+  <figcaption><p align="center">Explore metrics</p></figcaption>
   </p>
 </figure>
 
@@ -24,7 +24,7 @@ Change the datasources to `Mimir` to access the metrics, `Loki` to access the lo
 <figure>
 <p align="center" width="100%">
   <img src="./docs/images/logs.png" alt="init_result" style="width:100%">
-  <figcaption><h2 align="center">Explore logs</h2></figcaption>
+  <figcaption><p align="center">Explore logs</p></figcaption>
   </p>
 </figure>
 
@@ -33,7 +33,7 @@ Change the datasources to `Mimir` to access the metrics, `Loki` to access the lo
 <figure>
 <p align="center" width="100%">
   <img src="./docs/images/traces.png" alt="init_result" style="width:100%">
-  <figcaption><h2 align="center">Explore traces</h2></figcaption>
+  <figcaption><p align="center">Explore traces</p></figcaption>
   </p>
 </figure>
 
