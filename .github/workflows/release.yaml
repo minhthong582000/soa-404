@@ -183,7 +183,7 @@ jobs:
           # comma delimited list of project relative folders to inspect for package
           # managers (gomod, yarn, npm).
           PROJECT_FOLDERS: "."
-          DOCKER_IMAGES: ${{ env.REGISTRY }}/${{ env.REGISTRY_PATH }}/soa-404-server:${{ needs.release-image.outputs.version }}@{{ needs.release-image.outputs.server_digest }},${{ env.REGISTRY }}/${{ env.REGISTRY_PATH }}/soa-404-client:${{ needs.release-image.outputs.version }}@${{ needs.release-image.outputs.client_digest }}
+          DOCKER_IMAGES: ${{ env.REGISTRY }}/${{ env.REGISTRY_PATH }}/soa-404-server:${{ needs.release-image.outputs.version }}@${{ needs.release-image.outputs.server_digest }},${{ env.REGISTRY }}/${{ env.REGISTRY_PATH }}/soa-404-client:${{ needs.release-image.outputs.version }}@${{ needs.release-image.outputs.client_digest }}
         run: |
           go install github.com/spdx/spdx-sbom-generator/cmd/generator@$SPDX_GEN_VERSION
           go install sigs.k8s.io/bom/cmd/bom@$SIGS_BOM_VERSION
