@@ -163,6 +163,13 @@ jobs:
         with:
           go-version: ${{ env.GOLANG_VERSION }}
 
+      - name: Log in to the Container registry
+        uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Generate SBOM (spdx)
         id: spdx-builder
         env:
@@ -185,7 +192,7 @@ jobs:
           done
 
           # Generate SPDX for binaries analyzing the docker image
-          if [[ ! -z $DOCKER_IMAGE ]]; then
+          if [[ ! -z $DOCKER_IMAGES ]]; then
             for DOCKER_IMAGE in $(echo $DOCKER_IMAGES | sed "s/,/ /g")
             do
               IMAGE_NAME=$(echo $DOCKER_IMAGE | cut -d':' -f1 | cut -d'/' -f4)
