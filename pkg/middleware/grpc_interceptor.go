@@ -57,7 +57,7 @@ func (im *Interceptor) Metrics(ctx context.Context, req interface{}, info *grpc.
 
 	// Post Message Received
 	if metr.IsMetricExist(metric.Grpc_server_msg_received_total.Name) {
-		metr.Counter(metric.Grpc_server_msg_received_total, 1, string(metric.Unary), serviceName, methodName)
+		_ = metr.Counter(metric.Grpc_server_msg_received_total, 1, string(metric.Unary), serviceName, methodName)
 	}
 
 	// Call
@@ -65,7 +65,7 @@ func (im *Interceptor) Metrics(ctx context.Context, req interface{}, info *grpc.
 
 	// Post Message Sent
 	if metr.IsMetricExist(metric.Grpc_server_msg_sent_total.Name) {
-		metr.Counter(metric.Grpc_server_msg_sent_total, 1, string(metric.Unary), serviceName, methodName)
+		_ = metr.Counter(metric.Grpc_server_msg_sent_total, 1, string(metric.Unary), serviceName, methodName)
 	}
 
 	// Post Call
@@ -75,10 +75,10 @@ func (im *Interceptor) Metrics(ctx context.Context, req interface{}, info *grpc.
 	}
 	statusStr := strconv.Itoa(status)
 	if metr.IsMetricExist(metric.Grpc_server_handled_total.Name) {
-		metr.Counter(metric.Grpc_server_handled_total, 1, string(metric.Unary), serviceName, methodName, statusStr)
+		_ = metr.Counter(metric.Grpc_server_handled_total, 1, string(metric.Unary), serviceName, methodName, statusStr)
 	}
 	if metr.IsMetricExist(metric.Grpc_server_handling_seconds.Name) {
-		metr.Histogram(metric.Grpc_server_handling_seconds, time.Since(startTime).Seconds(), string(metric.Unary), serviceName, methodName)
+		_ = metr.Histogram(metric.Grpc_server_handling_seconds, time.Since(startTime).Seconds(), string(metric.Unary), serviceName, methodName)
 	}
 
 	return resp, err

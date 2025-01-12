@@ -82,7 +82,8 @@ func NewTmpPrometheusMetrics() *prometheusMetrics {
 		registry:   prometheus.NewRegistry(),
 		config:     &MetricsConfig{},
 	}
-	p.registry.Register(collectors.NewBuildInfoCollector())
+	_ = p.registry.Register(collectors.NewBuildInfoCollector())
+
 	return p
 }
 
