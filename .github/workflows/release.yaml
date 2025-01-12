@@ -41,7 +41,7 @@ jobs:
         id: push-server
         with:
           context: .
-          file: deploy/Dockerfile
+          file: deploy/docker/Dockerfile
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.REGISTRY_PATH }}/soa-404-server:${{ steps.version.outputs.version }}
           cache-from: type=gha
@@ -52,7 +52,7 @@ jobs:
         id: push-client
         with:
           context: .
-          file: deploy/Dockerfile.client
+          file: deploy/docker/Dockerfile.client
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.REGISTRY_PATH }}/soa-404-client:${{ steps.version.outputs.version }}
           cache-from: type=gha
