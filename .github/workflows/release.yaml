@@ -18,6 +18,8 @@ jobs:
       packages: write
       attestations: write
       id-token: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
@@ -171,6 +173,7 @@ jobs:
           # comma delimited list of project relative folders to inspect for package
           # managers (gomod, yarn, npm).
           PROJECT_FOLDERS: "."
+          DOCKER_IMAGES: ${{ env.REGISTRY }}/${{ env.REGISTRY_PATH }}/soa-404-server:${{ needs.release-image.outputs.version }},"${{ env.REGISTRY }}/${{ env.REGISTRY_PATH }}/soa-404-client:${{ needs.release-image.outputs.version }}"
         run: |
           go install github.com/spdx/spdx-sbom-generator/cmd/generator@$SPDX_GEN_VERSION
           go install sigs.k8s.io/bom/cmd/bom@$SIGS_BOM_VERSION
@@ -180,6 +183,15 @@ jobs:
           do
             generator -p $folder -o /tmp
           done
+
+          # Generate SPDX for binaries analyzing the docker image
+          if [[ ! -z $DOCKER_IMAGE ]]; then
+            for DOCKER_IMAGE in $(echo $DOCKER_IMAGES | sed "s/,/ /g")
+            do
+              IMAGE_NAME=$(echo $DOCKER_IMAGE | cut -d':' -f1 | cut -d'/' -f4)
+              bom generate -o /tmp/bom-$IMAGE_NAME-image.spdx -i $DOCKER_IMAGE
+            done
+          fi
 
           cd /tmp && tar -zcf sbom.tar.gz *.spdx
 
