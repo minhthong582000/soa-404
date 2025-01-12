@@ -45,7 +45,7 @@ archives:
       - server
       - client
     name_template: |-
-      {{ .Artifacts.Name }}-{{ .Os }}-{{ .Arch }}
+      {{ .ArtifactName }}-{{ .Os }}-{{ .Arch }}
     format: binary
 
 checksum:
