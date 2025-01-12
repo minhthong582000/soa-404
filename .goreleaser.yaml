@@ -1,0 +1,86 @@
+version: 2
+
+project_name: soa-404
+
+before:
+  hooks:
+    - go mod download
+    - make build-ui
+
+builds:
+  - id: server
+    main: ./cmd/random-service
+    binary: server-{{ .Os}}-{{ .Arch}}
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -v
+    ldflags: []
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ignore: []
+
+  - id: client
+    main: ./cmd/client
+    binary: client-{{ .Os}}-{{ .Arch}}
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -v
+    ldflags: []
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ignore: []
+
+archives:
+  - id: soa-404-archive
+    builds:
+      - server
+      - client
+    name_template: |-
+      {{ .ProjectName }}-{{ .Os }}-{{ .Arch }}
+    format: binary
+
+checksum:
+  name_template: "cli_checksums.txt"
+  algorithm: sha256
+
+release:
+  prerelease: auto
+  draft: false
+  header: ""
+  footer: ""
+
+changelog:
+  use: github
+  sort: asc
+  abbrev: 0
+  groups: # Regex use RE2 syntax as defined here: https://github.com/google/re2/wiki/Syntax.
+    - title: "Features"
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 100
+    - title: "Bug fixes"
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 200
+    - title: "Documentation"
+      regexp: '^.*?docs(\([[:word:]]+\))??!?:.+$'
+      order: 300
+    - title: "Dependency updates"
+      regexp: '^.*?(feat|fix|chore)\(deps?.+\)!?:.+$'
+      order: 400
+    - title: "Other work"
+      order: 999
+  filters:
+    exclude:
+      - "^test:"
+      - '^.*?Bump(\([[:word:]]+\))?.+$'
+      - '^.*?\[Bot\](\([[:word:]]+\))?.+$'
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json

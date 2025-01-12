@@ -9,8 +9,6 @@ on:
       - main
 
 env:
-  REGISTRY: ghcr.io
-  REGISTRY_PATH: ${{ github.repository }}
   GOLANG_VERSION: "1.23.3"
 
 jobs:
