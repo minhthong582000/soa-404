@@ -1,10 +1,10 @@
 BINARY=service
 
 proto:
-	buf dep update  
+	buf dep update
 	buf generate
 
-test: 
+test:
 	go test -v -cover -covermode=atomic ./...
 
 service:
@@ -30,7 +30,7 @@ stop:
 	docker compose -f deploy/docker/docker-compose.yaml down
 
 lint-prepare:
-	@echo "Installing golangci-lint" 
+	@echo "Installing golangci-lint"
 	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s latest
 
 lint:

@@ -1,0 +1,60 @@
+name: Build & Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  REGISTRY: ghcr.io
+  REGISTRY_PATH: ${{ github.repository }}
+  GOLANG_VERSION: "1.23.3"
+
+jobs:
+  build-and-test:
+    name: Go
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@8410ad0602e1e429cee44a835ae9f77f654a6694 # v4.0.0
+
+      - name: Setup Golang
+        uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5.2.0
+        with:
+          go-version: ${{ env.GOLANG_VERSION }}
+
+      - name: Download all Go modules
+        run: |
+          go mod download
+
+      - name: Check for tidiness of go.mod and go.sum
+        run: |
+          go mod tidy
+          git diff --exit-code -- .
+
+      - uses: bufbuild/buf-action@3fb70352251376e958c4c2c92c3818de82a71c2b # v1.0.2
+        with:
+          setup_only: true
+          version: 1.48.0
+
+      - name: Check for protobuf changes
+        run: |
+          make proto
+          git diff --exit-code -- .
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@971e284b6050e8a5849b72094c50ab08da042db8 # v6.1.1
+        with:
+          version: v1.63.4
+          args: --verbose
+
+      - name: Run all unit tests
+        run: make test
+
+      - name: Build
+        run: |
+          make service
+          make client
