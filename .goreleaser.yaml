@@ -5,7 +5,6 @@ project_name: soa-404
 before:
   hooks:
     - go mod download
-    - make build-ui
 
 builds:
   - id: server
