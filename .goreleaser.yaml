@@ -9,7 +9,7 @@ before:
 builds:
   - id: server
     main: ./cmd/random-service
-    binary: server-{{ .Os}}-{{ .Arch}}
+    binary: server-{{ .Os }}-{{ .Arch }}
     env:
       - CGO_ENABLED=0
     flags:
@@ -25,7 +25,7 @@ builds:
 
   - id: client
     main: ./cmd/client
-    binary: client-{{ .Os}}-{{ .Arch}}
+    binary: client-{{ .Os }}-{{ .Arch }}
     env:
       - CGO_ENABLED=0
     flags:
@@ -45,7 +45,7 @@ archives:
       - server
       - client
     name_template: |-
-      {{ .ProjectName }}-{{ .Os }}-{{ .Arch }}
+      {{ .Artifacts.Name }}-{{ .Os }}-{{ .Arch }}
     format: binary
 
 checksum:
