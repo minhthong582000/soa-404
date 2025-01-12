@@ -20,6 +20,8 @@ jobs:
       id-token: write
     outputs:
       version: ${{ steps.version.outputs.version }}
+      server_digest: ${{ steps.push-server.outputs.digest }}
+      client_digest: ${{ steps.push-client.outputs.digest }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
@@ -181,7 +183,7 @@ jobs:
           # comma delimited list of project relative folders to inspect for package
           # managers (gomod, yarn, npm).
           PROJECT_FOLDERS: "."
-          DOCKER_IMAGES: ${{ env.REGISTRY }}/${{ env.REGISTRY_PATH }}/soa-404-server:${{ needs.release-image.outputs.version }},"${{ env.REGISTRY }}/${{ env.REGISTRY_PATH }}/soa-404-client:${{ needs.release-image.outputs.version }}"
+          DOCKER_IMAGES: ${{ env.REGISTRY }}/${{ env.REGISTRY_PATH }}/soa-404-server:${{ needs.release-image.outputs.version }}@{{ needs.release-image.outputs.server_digest }},${{ env.REGISTRY }}/${{ env.REGISTRY_PATH }}/soa-404-client:${{ needs.release-image.outputs.version }}@${{ needs.release-image.outputs.client_digest }}
         run: |
           go install github.com/spdx/spdx-sbom-generator/cmd/generator@$SPDX_GEN_VERSION
           go install sigs.k8s.io/bom/cmd/bom@$SIGS_BOM_VERSION
